@@ -18,14 +18,30 @@ function writeStorage(data) {
     } catch (e) {}
 }
 
+// Store settings globally in memory
+let antideleteEnabled = false;
+
+function readState() {
+    return { enabled: antideleteEnabled };
+}
+
+function updateState(newState) {
+    if (typeof newState.enabled !== 'undefined') {
+        antideleteEnabled = newState.enabled;
+    }
+    return { enabled: antideleteEnabled };
+}
+
 async function storeMessage(sock, msg) {
+    // Always store messages if we want to catch deletions, 
+    // but check if enabled during the actual revocation handling or here
     if (!msg.message || msg.key.remoteJid === 'status@broadcast') return;
     const storage = readStorage();
     const chatId = msg.key.remoteJid;
     const msgId = msg.key.id;
     
     if (!storage[chatId]) storage[chatId] = {};
-    storage[chatId][msgId] = msg;
+    storage[chatId][msgId] = JSON.parse(JSON.stringify(msg)); // Deep copy to preserve message content
     
     // Keep only last 100 messages per chat
     const keys = Object.keys(storage[chatId]);
@@ -37,6 +53,8 @@ async function storeMessage(sock, msg) {
 }
 
 async function handleMessageRevocation(sock, msg) {
+    const { enabled } = readState();
+    if (!enabled) return;
     try {
         const protocolMsg = msg.message.protocolMessage;
         const targetId = protocolMsg.key.id;

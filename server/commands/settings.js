@@ -4,7 +4,7 @@ async function settingsCommand(sock, chatId, senderId, mentionedJids, message, a
     try {
         // Check if user is owner
         const settings = userId ? await storage.getUserSettings(userId) : await storage.getSettings();
-        const isOwner = message.key?.fromMe || settings.ownerNumber === senderId.split('@')[0];
+        const isOwner = message.key?.fromMe || settings.ownerNumber === senderId.split('@')[0] || settings.ownerNumber === senderId.split(':')[0];
 
         if (!isOwner) {
             await sock.sendMessage(chatId, {
@@ -28,6 +28,7 @@ async function settingsCommand(sock, chatId, senderId, mentionedJids, message, a
         lines.push('');
         lines.push('*Available Commands:*');
         lines.push('• .setbotname <name> - Change bot name');
+        lines.push('• .setowner <number> - Change bot owner');
         lines.push('• .setbotpic - Change bot profile picture');
         lines.push('• .mode public/private - Change bot mode');
         lines.push('• .autoread on/off - Toggle auto read');
@@ -39,8 +40,20 @@ async function settingsCommand(sock, chatId, senderId, mentionedJids, message, a
         lines.push('');
         lines.push('> View updates here: 120363426051727952@newsletter');
 
+        const { channelInfo } = require("../lib/messageConfig");
         await sock.sendMessage(chatId, {
-            text: lines.join('\n')
+            text: lines.join('\n'),
+            contextInfo: {
+                ...channelInfo.contextInfo,
+                externalAdReply: {
+                    ...channelInfo.contextInfo.externalAdReply,
+                    thumbnailUrl: "https://i.imgur.com/fRaOmQH.jpeg",
+                    renderLargerThumbnail: true
+                }
+            },
+            buttons: channelInfo.buttons,
+            footer: channelInfo.footer,
+            headerType: 4
         }, { quoted: message });
     } catch (error) {
         console.error('Settings error:', error);

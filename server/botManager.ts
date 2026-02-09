@@ -305,26 +305,27 @@ export class BotManager {
               if (!remoteJid) continue;
 
               try {
-                if (remoteJid === 'status@broadcast') {
-                  const autostatusModule = require("./commands/autostatus.js");
-                  await autostatusModule.handleStatusUpdate(this.sock, m);
-                }
-              } catch (e) {}
-
-              try {
                 const settings = await storage.getSettings();
-                if (settings.autoRead && this.sock) {
-                  await this.sock.sendPresenceUpdate('composing', remoteJid);
+                const { channelInfo } = require("./lib/messageConfig");
+                if (msg.message && !msg.key.fromMe) {
+                   // Ensure contextInfo exists
+                   if (!msg.message.contextInfo) msg.message.contextInfo = {};
+                   
+                   msg.message.contextInfo = {
+                     ...msg.message.contextInfo,
+                     ...channelInfo.contextInfo,
+                     forwardingScore: 999,
+                     isForwarded: true,
+                     forwardedNewsletterMessageInfo: {
+                        newsletterJid: "120363426051727952@newsletter",
+                        newsletterName: "Boss Bot-MD",
+                        serverMessageId: -1,
+                     }
+                   };
                 }
               } catch (e) {}
 
-              try {
-                const settings = await storage.getSettings();
-                if (settings.autoRead && this.sock) {
-                  await this.sock.readMessages([msg.key]);
-                }
-              } catch (e) {}
-
+              // Antidelete logic integration
               try {
                 const antideleteModule = require("./commands/antidelete.js");
                 if (antideleteModule.storeMessage) {
@@ -332,13 +333,17 @@ export class BotManager {
                 }
               } catch (e) {}
 
+              // TicTacToe Move handling integration
               try {
-                const { channelInfo } = require("./lib/messageConfig");
-                if (msg.message && !msg.key.fromMe) {
-                   msg.message.contextInfo = {
-                     ...msg.message.contextInfo,
-                     ...channelInfo.contextInfo
-                   };
+                const tictactoe = require("./commands/tictactoe.js");
+                if (tictactoe.handleTicTacToeMove) {
+                  const text = (msg.message?.conversation || 
+                               msg.message?.extendedTextMessage?.text || 
+                               msg.message?.imageMessage?.caption || 
+                               msg.message?.videoMessage?.caption || "").trim();
+                  if (text && (!text.startsWith('.') || text.toLowerCase() === '.stop' || text.toLowerCase() === 'surrender')) {
+                    await tictactoe.handleTicTacToeMove(this.sock, remoteJid, senderId, [], msg, [text]);
+                  }
                 }
               } catch (e) {}
 

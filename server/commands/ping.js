@@ -36,24 +36,34 @@ async function pingCommand(
         const uptimeInSeconds = process.uptime();
         const uptimeFormatted = formatTime(uptimeInSeconds);
 
-        // Sleek small/unicode font style
-        const botInfo = `⚔️ *ʙᴏss ᴜɴɪᴛ sᴛᴀᴛᴜs* ⚔️
+    const { channelInfo } = require("../lib/messageConfig");
+    const settingsData = await require("../storage").storage.getSettings();
+    const botInfo = `⚔️ *ʙᴏss ᴜɴɪᴛ sᴛᴀᴛᴜs* ⚔️
 
 🚀 *ʟᴀᴛᴇɴᴄʏ  : ${ping} ms*
 ⏱️ *ᴜᴘᴛɪᴍᴇ  : ${uptimeFormatted}*
 🔖 *ᴠᴇʀsɪᴏɴ : v${settings.version}*
-🛡️ *sᴛᴀᴛᴜs  : ᴏᴘᴇʀᴀᴛɪᴏɴᴀʟ*
+👤 *ᴏᴡɴᴇʀ  : ${settingsData.ownerNumber || 'ɪsʀᴀᴇʟ'}*
+🛡️ *sᴛᴀᴛᴜs  : ᴏᴘᴇʀᴀᴛɪᴏɴᴀʟ*`;
 
-🔥 [Click here for bot image](${BOT_IMAGE})`;
-
-        await sock.sendMessage(
-            chatId,
-            {
-                text: botInfo,
-                linkPreview: true, // clickable link preview
+    await sock.sendMessage(
+        chatId,
+        {
+            text: botInfo,
+            contextInfo: {
+                ...channelInfo.contextInfo,
+                externalAdReply: {
+                    ...channelInfo.contextInfo.externalAdReply,
+                    thumbnailUrl: BOT_IMAGE,
+                    renderLargerThumbnail: true
+                }
             },
-            { quoted: message },
-        );
+            buttons: channelInfo.buttons,
+            footer: channelInfo.footer,
+            headerType: 4
+        },
+        { quoted: message },
+    );
     } catch (error) {
         console.error("Error in ping command:", error);
         await sock.sendMessage(

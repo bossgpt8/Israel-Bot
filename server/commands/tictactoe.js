@@ -112,9 +112,15 @@ async function handleTicTacToeMove(sock, chatId, senderId, mentionedJids, messag
 
         if (!room) return;
 
-        const isSurrender = /^(surrender|give up)$/i.test(text);
+        const isSurrender = /^(surrender|give up|.surrender|.stop)$/i.test(text);
         
-        if (!isSurrender && !/^[1-9]$/.test(text)) return;
+        if (!isSurrender && !/^[1-9]$/.test(text)) {
+            // Check if it's a join command .ttt
+            if (/^\.(ttt|tictactoe)$/i.test(text) && room.state === 'WAITING') {
+                // Main command handles WAITING -> PLAYING
+            }
+            return;
+        }
 
         // Allow surrender at any time, not just during player's turn
         if (senderId !== room.game.currentTurn && !isSurrender) {

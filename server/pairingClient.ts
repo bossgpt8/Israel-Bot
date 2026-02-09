@@ -30,6 +30,7 @@ if (BOT_ID) {
         setTimeout(() => {
           const status = botManager.getStatus(BOT_ID);
           if (status.pairingCode) {
+            console.log(`📡 Relaying pairing code: ${status.pairingCode}`);
             fetch(`${PAIRING_SERVER_URL}/api/pair/relay`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },

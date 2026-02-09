@@ -152,7 +152,11 @@ export default function Home() {
                             className="cyber-input flex-1"
                           />
                           <button
-                            onClick={() => executeAction({ action: "start", phoneNumber: phone })}
+                            onClick={() => {
+                               executeAction({ action: "start", phoneNumber: phone });
+                               // Force UI to show starting state immediately
+                               window.location.reload();
+                            }}
                             disabled={isPending || !phone}
                             className="cyber-button whitespace-nowrap px-8"
                           >

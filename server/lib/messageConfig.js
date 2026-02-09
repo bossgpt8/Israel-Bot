@@ -13,13 +13,14 @@ const channelInfo = {
             thumbnailUrl: "https://i.imgur.com/fRaOmQH.jpeg",
             sourceUrl: "https://whatsapp.com/channel/0029VbCYfhjLikgG5NQ7IN2u",
             mediaType: 1,
-            renderLargerThumbnail: true
+            renderLargerThumbnail: true,
+            showAdAttribution: true
         }
     },
     // Adding View Channel button
     buttons: [
         {
-            buttonId: 'view_channel',
+            buttonId: 'view_channel_btn',
             buttonText: { displayText: 'View Channel' },
             type: 1
         }

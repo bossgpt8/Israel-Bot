@@ -38,23 +38,32 @@ async function aliveCommand(
 
         // Send as clickable link preview with channel info
         const { channelInfo } = require("../lib/messageConfig");
+        const settingsData = await require("../storage").storage.getSettings();
+        
         await sock.sendMessage(
             chatId,
             {
-                image: { url: BOT_IMAGE },
-                caption: `⚔️ *ʙᴏss ᴜɴɪᴛ sᴛᴀᴛᴜs* ⚔️
+                text: `⚔️ *ʙᴏss ᴜɴɪᴛ sᴛᴀᴛᴜs* ⚔️
 
 🤖 *sʏsᴛᴇᴍ : ᴀᴄᴛɪᴠᴇ*
 🔖 *ᴠᴇʀsɪᴏɴ : ${settings.version}*
 ⏱️ *ᴜᴘᴛɪᴍᴇ : ${uptime}*
 🛡️ *ᴍᴏᴅᴇ   : ${mode}*
+👤 *ᴏᴡɴᴇʀ  : ${settingsData.ownerNumber || 'ɪsʀᴀᴇʟ'}*
 
 🔥 ᴄᴏᴍᴍᴀɴᴅ ᴄᴇɴᴛᴇʀ ɪs ʟɪᴠᴇ
 
 Type *.menu* to access all features.
 
 *Powered by Israel*`,
-                ...channelInfo,
+                contextInfo: {
+                    ...channelInfo.contextInfo,
+                    externalAdReply: {
+                        ...channelInfo.contextInfo.externalAdReply,
+                        thumbnailUrl: BOT_IMAGE,
+                        renderLargerThumbnail: true
+                    }
+                },
                 buttons: channelInfo.buttons,
                 footer: channelInfo.footer,
                 headerType: 4

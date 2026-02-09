@@ -193,9 +193,15 @@ async function helpCommand(
     await sock.sendMessage(
       chatId,
       {
-        image: { url: "https://i.imgur.com/fRaOmQH.jpeg" },
-        caption: menuText,
-        ...channelInfo,
+        text: menuText,
+        contextInfo: {
+          ...channelInfo.contextInfo,
+          externalAdReply: {
+            ...channelInfo.contextInfo.externalAdReply,
+            thumbnailUrl: "https://i.imgur.com/fRaOmQH.jpeg",
+            renderLargerThumbnail: true
+          }
+        },
         buttons: channelInfo.buttons,
         footer: channelInfo.footer,
         headerType: 4
