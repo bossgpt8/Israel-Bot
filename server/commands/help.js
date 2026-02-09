@@ -196,6 +196,9 @@ async function helpCommand(
         image: { url: "https://i.imgur.com/fRaOmQH.jpeg" },
         caption: menuText,
         ...channelInfo,
+        buttons: channelInfo.buttons,
+        footer: channelInfo.footer,
+        headerType: 4
       },
       { quoted: message },
     );

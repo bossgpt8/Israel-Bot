@@ -54,7 +54,10 @@ async function aliveCommand(
 Type *.menu* to access all features.
 
 *Powered by Israel*`,
-                ...channelInfo
+                ...channelInfo,
+                buttons: channelInfo.buttons,
+                footer: channelInfo.footer,
+                headerType: 4
             },
             { quoted: message },
         );

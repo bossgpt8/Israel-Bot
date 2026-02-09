@@ -78,7 +78,7 @@ export default function Home() {
                     {botStatus === "starting" && !status?.qr ? (
                       <div className="py-12 flex flex-col items-center justify-center gap-4">
                         <div className="w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
-                        <p className="text-primary text-sm font-bold uppercase tracking-widest animate-pulse">Generating QR Code...</p>
+                        <p className="text-primary text-sm font-bold uppercase tracking-widest animate-pulse">Connecting to WhatsApp...</p>
                         <p className="text-muted-foreground text-xs">This may take 10-15 seconds</p>
                       </div>
                     ) : status?.qr ? (
@@ -118,7 +118,7 @@ export default function Home() {
                     )}
                   </TabsContent>
                   <TabsContent value="pairing" className="pt-8 space-y-4">
-                    {botStatus === "starting" && !status?.pairingCode ? (
+                    {(botStatus === "starting" || botStatus === "offline") && !status?.pairingCode ? (
                       <div className="py-12 flex flex-col items-center justify-center gap-4">
                         <div className="w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
                         <p className="text-primary text-sm font-bold uppercase tracking-widest animate-pulse">Generating Pairing Code...</p>

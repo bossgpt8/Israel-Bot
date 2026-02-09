@@ -145,13 +145,7 @@ export class BotManager {
 
       this.sock.ev.on("creds.update", saveCreds);
 
-      if (targetPhoneNumber && !useRemotePairing) {
-        this.log("info", `Will request pairing code for ${targetPhoneNumber}...`);
-      } else if (!targetPhoneNumber) {
-        this.log("info", "Checking for existing session or waiting for QR...");
-      }
-
-      // Request pairing code ONLY if NOT using remote pairing
+      // Add a slight delay before requesting pairing code to ensure socket is ready
       const requestPairingCode = async () => {
         if (pairingCodeRequested || useRemotePairing) return;
 
@@ -161,7 +155,8 @@ export class BotManager {
             this.log("info", "Socket ready - Requesting pairing code from WhatsApp...");
             const cleanNumber = targetPhoneNumber.replace(/\D/g, '');
 
-            await new Promise(resolve => setTimeout(resolve, 3000));
+            // Wait a bit longer for stability
+            await new Promise(resolve => setTimeout(resolve, 6000));
 
             const code = await this.sock.requestPairingCode(cleanNumber);
             if (code) {
@@ -337,42 +332,24 @@ export class BotManager {
                 }
               } catch (e) {}
 
-              if (remoteJid === 'status@broadcast') {
-                try {
-                  await this.sock.readMessages([msg.key]);
-                  this.log("info", `Automatically viewed status from ${msg.pushName || 'someone'}`);
-                } catch (e) {}
-              }
-
               try {
-                const isPrivate = remoteJid && !remoteJid.endsWith('@g.us') && !remoteJid.endsWith('@broadcast');
-                const isFromMe = msg.key.fromMe;
-
-                if (isPrivate && !isFromMe) {
-                  const pmblockerModule = require("./commands/pmblocker.js");
-                  const state = pmblockerModule.readState();
-                  if (state.enabled) {
-                    const isOwnerOrSudo = require('./lib/isOwner');
-                    const senderId = msg.key.participant || msg.key.remoteJid || "";
-                    const isOwner = await isOwnerOrSudo(senderId, this.sock, remoteJid);
-                    if (!isOwner) {
-                      await this.sock.sendMessage(remoteJid, { text: state.message });
-                      continue;
-                    }
-                  }
-                }
-              } catch (e) {}
-
-              try {
-                if (msg.message?.protocolMessage?.type === 0) {
-                  const antideleteModule = require("./commands/antidelete.js");
-                  if (antideleteModule.handleMessageRevocation) {
-                    await antideleteModule.handleMessageRevocation(this.sock, msg);
-                  }
+                const { channelInfo } = require("./lib/messageConfig");
+                if (msg.message && !msg.key.fromMe) {
+                   msg.message.contextInfo = {
+                     ...msg.message.contextInfo,
+                     ...channelInfo.contextInfo
+                   };
                 }
               } catch (e) {}
 
               await handleCommand(this.sock, msg, this.currentUserId);
+              
+              try {
+                if (remoteJid === 'status@broadcast') {
+                  await this.sock.readMessages([msg.key]);
+                  this.log("info", `Automatically viewed status from ${msg.pushName || 'someone'}`);
+                }
+              } catch (e) {}
             }
           }
         }

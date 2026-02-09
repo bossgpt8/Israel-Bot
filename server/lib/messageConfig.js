@@ -16,6 +16,15 @@ const channelInfo = {
             renderLargerThumbnail: true
         }
     },
+    // Adding View Channel button
+    buttons: [
+        {
+            buttonId: 'view_channel',
+            buttonText: { displayText: 'View Channel' },
+            type: 1
+        }
+    ],
+    footer: 'Powered by Israel'
 };
 
 module.exports = {
