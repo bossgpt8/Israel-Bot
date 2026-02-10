@@ -17,14 +17,15 @@ import { handleCommand } from "./commands";
 const PAIRING_SERVER_URL = "https://boss-bot-pair.up.railway.app";
 
 export class BotManager {
-  private sock: WASocket | null = null;
-  private qr: string | null = null;
-  private pairingCode: string | null = null;
-  private status: "offline" | "starting" | "online" | "error" = "offline";
-  private reconnectAttempts = 0;
+  private instances: Map<string, {
+    sock: WASocket | null;
+    qr: string | null;
+    pairingCode: string | null;
+    status: "offline" | "starting" | "online" | "error";
+    reconnectAttempts: number;
+  }> = new Map();
   private maxReconnectAttempts = 10;
   private authDir = path.join(process.cwd(), "session");
-  private currentUserId: string | null = null;
 
   constructor() {
     if (!fs.existsSync(this.authDir)) {
@@ -32,17 +33,30 @@ export class BotManager {
     }
   }
 
-  public getStatus(userId?: string) {
+  private getInstance(userId: string = "default") {
+    if (!this.instances.has(userId)) {
+      this.instances.set(userId, {
+        sock: null,
+        qr: null,
+        pairingCode: null,
+        status: "offline",
+        reconnectAttempts: 0,
+      });
+    }
+    return this.instances.get(userId)!;
+  }
+
+  public getStatus(userId: string = "default") {
+    const instance = this.getInstance(userId);
     return {
-      status: this.status,
-      qr: this.qr,
-      pairingCode: this.pairingCode,
+      status: instance.status,
+      qr: instance.qr,
+      pairingCode: instance.pairingCode,
       uptime: process.uptime(),
-      currentUserId: this.currentUserId,
+      currentUserId: userId === "default" ? null : userId,
     };
   }
 
-  // 🔻 NEW: Fetch session from pairing server
   private async fetchSessionFromServer(sessionId: string): Promise<{ creds: any; keys: any } | null> {
     try {
       const res = await fetch(`${PAIRING_SERVER_URL}/session/${sessionId}/auth-state`);
@@ -64,22 +78,23 @@ export class BotManager {
   public async start(
     phoneNumber?: string,
     forceNewSession: boolean = true,
-    userId?: string,
-    useRemotePairing: boolean = false // ← NEW FLAG
+    userId: string = "default",
+    useRemotePairing: boolean = false
   ) {
-    if (this.status === "online" || this.status === "starting") return;
-    this.status = "starting";
-    this.pairingCode = null;
-    this.qr = null;
-    this.currentUserId = userId || null;
-    this.log("info", `Starting Boss Bot for user ${userId || 'default'}...`);
+    const instance = this.getInstance(userId);
+    if (instance.status === "online" || instance.status === "starting") return;
+    
+    instance.status = "starting";
+    instance.pairingCode = null;
+    instance.qr = null;
+    
+    this.log(userId, "info", `Starting Boss Bot for user ${userId}...`);
 
     try {
-      const userAuthDir = userId ? path.join(this.authDir, userId) : this.authDir;
+      const userAuthDir = userId === "default" ? this.authDir : path.join(this.authDir, userId);
 
-      // Clear local session only if forcing new AND not using remote pairing
       if (forceNewSession && !useRemotePairing && phoneNumber && fs.existsSync(userAuthDir)) {
-        this.log("info", `Clearing previous LOCAL session for user ${userId || 'default'}`);
+        this.log(userId, "info", `Clearing previous LOCAL session for user ${userId}`);
         fs.rmSync(userAuthDir, { recursive: true, force: true });
       }
 
@@ -90,21 +105,19 @@ export class BotManager {
       let authState;
       let saveCreds: () => Promise<void>;
 
-      if (useRemotePairing && userId) {
-        // 🔽 LOAD FROM REMOTE SERVER
-        this.log("info", `Attempting to load session from pairing server for user ${userId}`);
+      if (useRemotePairing && userId !== "default") {
+        this.log(userId, "info", `Attempting to load session from pairing server for user ${userId}`);
         const remoteState = await this.fetchSessionFromServer(userId);
         if (remoteState) {
           authState = {
             creds: remoteState.creds,
             keys: makeCacheableSignalKeyStore(remoteState.keys, pino({ level: "silent" }) as any),
           };
-          // Still save future updates locally (optional: could sync back to server)
           const { saveCreds: localSave } = await useMultiFileAuthState(userAuthDir);
           saveCreds = localSave;
-          this.log("info", "✅ Remote session loaded successfully!");
+          this.log(userId, "info", "✅ Remote session loaded successfully!");
         } else {
-          this.log("warn", "No remote session found. Falling back to local auth.");
+          this.log(userId, "warn", "No remote session found. Falling back to local auth.");
           const localState = await useMultiFileAuthState(userAuthDir);
           authState = {
             creds: localState.state.creds,
@@ -113,7 +126,6 @@ export class BotManager {
           saveCreds = localState.saveCreds;
         }
       } else {
-        // 🔽 LOCAL AUTH (QR or local pairing)
         const localState = await useMultiFileAuthState(userAuthDir);
         authState = {
           creds: localState.state.creds,
@@ -124,7 +136,7 @@ export class BotManager {
 
       const { version } = await fetchLatestBaileysVersion();
 
-      this.sock = makeWASocket({
+      instance.sock = makeWASocket({
         version,
         logger: pino({ level: "silent" }) as any,
         printQRInTerminal: false,
@@ -143,56 +155,49 @@ export class BotManager {
       const targetPhoneNumber = phoneNumber;
       let pairingCodeRequested = false;
 
-      this.sock.ev.on("creds.update", saveCreds);
+      instance.sock.ev.on("creds.update", saveCreds);
 
-      // Add a slight delay before requesting pairing code to ensure socket is ready
       const requestPairingCode = async () => {
         if (pairingCodeRequested || useRemotePairing) return;
-
         try {
-          if (this.sock && !this.sock.authState.creds.registered && targetPhoneNumber) {
+          if (instance.sock && !instance.sock.authState.creds.registered && targetPhoneNumber) {
             pairingCodeRequested = true;
-            this.log("info", "Socket ready - Requesting pairing code from WhatsApp...");
+            this.log(userId, "info", "Socket ready - Requesting pairing code from WhatsApp...");
             const cleanNumber = targetPhoneNumber.replace(/\D/g, '');
-
-            // Wait a bit longer for stability
             await new Promise(resolve => setTimeout(resolve, 6000));
-
-            const code = await this.sock.requestPairingCode(cleanNumber);
+            const code = await instance.sock.requestPairingCode(cleanNumber);
             if (code) {
-              this.pairingCode = code;
-              this.log("info", `Pairing code generated: ${this.pairingCode}`);
-              this.log("info", "Go to WhatsApp > Settings > Linked Devices > Link a Device > Link with phone number");
-              this.qr = null;
+              instance.pairingCode = code;
+              this.log(userId, "info", `Pairing code generated: ${instance.pairingCode}`);
+              instance.qr = null;
             }
           }
         } catch (err: any) {
-          this.log("error", `Failed to get pairing code: ${err.message || err}`);
+          this.log(userId, "error", `Failed to get pairing code: ${err.message || err}`);
           pairingCodeRequested = false;
         }
       };
 
-      this.sock.ev.on("connection.update", async (update: Partial<ConnectionState>) => {
+      instance.sock.ev.on("connection.update", async (update: Partial<ConnectionState>) => {
         const { connection, lastDisconnect, qr } = update;
 
-        // Only auto-request pairing code if NOT using remote pairing
         if (connection === "connecting" && targetPhoneNumber && !pairingCodeRequested && !useRemotePairing) {
           setTimeout(requestPairingCode, 5000);
         }
 
         if (connection === "open") {
-          const user = this.sock?.user;
+          const user = instance.sock?.user;
           if (user) {
             const connectedNumber = user.id.split(":")[0];
-            this.log("info", `Connected! Instance Owner: ${connectedNumber}`);
+            this.log(userId, "info", `Connected! Instance Owner: ${connectedNumber}`);
 
             if (forceNewSession && targetPhoneNumber) {
-              await this.sock.sendMessage(user.id, {
+              await instance.sock.sendMessage(user.id, {
                 text: `🚀 *WELCOME TO BOSS BOT*\n\nYour bot is now active and linked to this account.\n\n*Quick Start:*\n• Type *.menu* to see all commands\n• Type *.setbotname* to change bot name\n• Type *.setbotpic* to change profile pic\n\nEnjoy your premium automation! ⚡\n\n > View updates here: 120363426051727952@newsletter`
               });
             }
 
-            if (userId) {
+            if (userId !== "default") {
               await storage.updateUserSession(userId, {
                 linkedWhatsAppNumber: connectedNumber,
                 botActiveStatus: true
@@ -205,9 +210,9 @@ export class BotManager {
         }
 
         if (qr && !targetPhoneNumber) {
-          this.qr = qr;
-          this.pairingCode = null;
-          this.log("info", "QR Code generated. Scan with WhatsApp to connect.");
+          instance.qr = qr;
+          instance.pairingCode = null;
+          this.log(userId, "info", "QR Code generated. Scan with WhatsApp to connect.");
         } else if (qr && targetPhoneNumber && !pairingCodeRequested && !useRemotePairing) {
           requestPairingCode();
         }
@@ -215,210 +220,96 @@ export class BotManager {
         if (connection === "close") {
           const statusCode = (lastDisconnect?.error as Boom)?.output?.statusCode;
           const errorMessage = (lastDisconnect?.error as any)?.message || 'Unknown error';
+          const shouldReconnect = statusCode !== DisconnectReason.loggedOut && statusCode !== DisconnectReason.connectionReplaced;
 
-          const shouldReconnect = statusCode !== DisconnectReason.loggedOut &&
-                                  statusCode !== DisconnectReason.connectionReplaced;
+          this.log(userId, "warn", `Connection closed: ${errorMessage}, status: ${statusCode}, reconnecting: ${shouldReconnect}`);
+          instance.status = "offline";
+          instance.qr = null;
+          instance.pairingCode = null;
 
-          if (statusCode === DisconnectReason.connectionReplaced) {
-            this.log("error", "Conflict detected: This session is being used elsewhere.");
-          }
-
-          this.log("warn", `Connection closed: ${errorMessage}, status: ${statusCode}, reconnecting: ${shouldReconnect}`);
-
-          this.status = "offline";
-          this.qr = null;
-          this.pairingCode = null;
-
-          if (shouldReconnect && this.reconnectAttempts < this.maxReconnectAttempts) {
-            this.reconnectAttempts++;
-            const delay = Math.min(2000 * this.reconnectAttempts, 10000);
-            this.log("info", `Attempting reconnection (${this.reconnectAttempts}/${this.maxReconnectAttempts}) in ${delay / 1000}s...`);
+          if (shouldReconnect && instance.reconnectAttempts < this.maxReconnectAttempts) {
+            instance.reconnectAttempts++;
+            const delay = Math.min(2000 * instance.reconnectAttempts, 10000);
             setTimeout(() => this.start(undefined, false, userId, useRemotePairing), delay);
-          } else {
-            if (statusCode === DisconnectReason.loggedOut) {
-              this.log("info", "Logged out from device. Session cleared.");
-              if (fs.existsSync(userAuthDir)) {
-                fs.rmSync(userAuthDir, { recursive: true, force: true });
-              }
-              this.sock = null;
-              this.status = "offline";
-            } else if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-              this.log("error", "Max reconnection attempts reached.");
-              this.reconnectAttempts = 0;
-              this.status = "error";
-            }
+          } else if (statusCode === DisconnectReason.loggedOut) {
+            if (fs.existsSync(userAuthDir)) fs.rmSync(userAuthDir, { recursive: true, force: true });
+            instance.sock = null;
           }
         } else if (connection === "open") {
-          this.status = "online";
-          this.qr = null;
-          this.reconnectAttempts = 0;
-          this.log("info", "Connected to WhatsApp!");
-
-          const user = this.sock?.user;
-          if (user) {
-            this.log("info", `Logged in as ${user.id.split(":")[0]}`);
-          }
+          instance.status = "online";
+          instance.qr = null;
+          instance.reconnectAttempts = 0;
+          this.log(userId, "info", "Connected to WhatsApp!");
         }
       });
 
-      // 👇 Keep all your existing event handlers (group, messages, calls, etc.) — unchanged
-      this.sock.ev.on("group-participants.update", async (ev) => {
-        try {
-          const { id, participants, action } = ev;
-          if (action === 'add') {
-            const welcomeModule = require("./commands/welcome.js");
-            if (welcomeModule.handleJoinEvent) {
-              await welcomeModule.handleJoinEvent(this.sock, id, participants);
-            }
-          } else if (action === 'remove') {
-            const goodbyeModule = require("./commands/goodbye.js");
-            if (goodbyeModule.handleLeaveEvent) {
-              await goodbyeModule.handleLeaveEvent(this.sock, id, participants);
-            }
-          }
-        } catch (e) {
-          console.error("Welcome/Goodbye error: ", e);
-        }
-      });
-
-      this.sock.ev.on("messages.upsert", async (m) => {
+      instance.sock.ev.on("messages.upsert", async (m) => {
         if (m.type === "notify") {
           for (const msg of m.messages) {
-            if (msg.message?.protocolMessage?.type === 0) {
-              const remoteJid = msg.key.remoteJid;
-              if (remoteJid && this.sock) {
-                const antideleteModule = require("./commands/antidelete.js");
-                if (antideleteModule.handleMessageRevocation) {
-                  await antideleteModule.handleMessageRevocation(this.sock, msg);
-                }
-              }
-            }
-          }
-        }
-      });
-
-      this.sock.ev.on("messages.upsert", async (m) => {
-        if (m.type === "notify") {
-          for (const msg of m.messages) {
-            if (this.sock) {
+            if (instance.sock) {
               const remoteJid = msg.key.remoteJid;
               if (!remoteJid) continue;
-
-              try {
-                const settings = await storage.getSettings();
-                const { channelInfo } = require("./lib/messageConfig");
-                if (msg.message && !msg.key.fromMe) {
-                   // Ensure contextInfo exists
-                   if (!msg.message.contextInfo) msg.message.contextInfo = {};
-                   
-                   msg.message.contextInfo = {
-                     ...msg.message.contextInfo,
-                     ...channelInfo.contextInfo,
-                     forwardingScore: 999,
-                     isForwarded: true,
-                     forwardedNewsletterMessageInfo: {
-                        newsletterJid: "120363426051727952@newsletter",
-                        newsletterName: "Boss Bot-MD",
-                        serverMessageId: -1,
-                     }
-                   };
-                }
-              } catch (e) {}
-
-              // Antidelete logic integration
-              try {
-                const antideleteModule = require("./commands/antidelete.js");
-                if (antideleteModule.storeMessage) {
-                  await antideleteModule.storeMessage(this.sock, msg);
-                }
-              } catch (e) {}
-
-              // TicTacToe Move handling integration
+              
+              const senderId = msg.key.participant || msg.key.remoteJid;
+              
+              // Handle TicTacToe Move
               try {
                 const tictactoe = require("./commands/tictactoe.js");
-                if (tictactoe.handleTicTacToeMove) {
-                  const text = (msg.message?.conversation || 
-                               msg.message?.extendedTextMessage?.text || 
-                               msg.message?.imageMessage?.caption || 
-                               msg.message?.videoMessage?.caption || "").trim();
-                  
-                  // Check for .ttt or .tictactoe as join command
-                  if (/^\.(ttt|tictactoe)$/i.test(text)) {
-                    await tictactoe.tictactoeCommand(this.sock, remoteJid, senderId, [], msg, [text]);
-                  } else if (text && (!text.startsWith('.') || /^(surrender|give up|.surrender|.stop)$/i.test(text))) {
-                    await tictactoe.handleTicTacToeMove(this.sock, remoteJid, senderId, [], msg, [text]);
-                  }
+                const text = (msg.message?.conversation || 
+                             msg.message?.extendedTextMessage?.text || 
+                             msg.message?.imageMessage?.caption || 
+                             msg.message?.videoMessage?.caption || "").trim();
+                
+                if (/^\.(ttt|tictactoe)$/i.test(text)) {
+                  await tictactoe.tictactoeCommand(instance.sock, remoteJid, senderId, [], msg, [text]);
+                } else if (text && (!text.startsWith('.') || /^(surrender|give up|.surrender|.stop)$/i.test(text))) {
+                  await tictactoe.handleTicTacToeMove(instance.sock, remoteJid, senderId, [], msg, [text]);
                 }
               } catch (e) {}
 
-              await handleCommand(this.sock, msg, this.currentUserId);
-              
-              try {
-                if (remoteJid === 'status@broadcast') {
-                  await this.sock.readMessages([msg.key]);
-                  this.log("info", `Automatically viewed status from ${msg.pushName || 'someone'}`);
-                }
-              } catch (e) {}
+              await handleCommand(instance.sock, msg, userId === "default" ? null : userId);
             }
           }
-        }
-      });
-
-      this.sock.ev.on("call", async (calls) => {
-        try {
-          const anticallModule = require("./commands/anticall.js");
-          const state = anticallModule.readState();
-
-          if (state.enabled && this.sock) {
-            for (const call of calls) {
-              if (call.status === "offer") {
-                await this.sock.rejectCall(call.id, call.from);
-                const callerNumber = call.from.split('@')[0];
-                await this.sock.sendMessage(call.from, {
-                  text: `❌ *Call Rejected*\n\nCalls are blocked on this bot. Please send a text message instead.`
-                });
-                this.log("info", `Rejected call from ${callerNumber}`);
-              }
-            }
-          }
-        } catch (e) {
-          console.error("Anticall error: ", e);
         }
       });
 
     } catch (err: any) {
-      this.log("error", `Failed to start bot: ${err.message}`);
-      this.status = "error";
+      this.log(userId, "error", `Failed to start bot: ${err.message}`);
+      instance.status = "error";
     }
   }
 
-  public async stop() {
-    if (this.sock) {
-      this.sock.end(undefined);
-      this.sock = null;
-      this.status = "offline";
-      this.qr = null;
-      this.log("info", "Bot stopped.");
+  public async stop(userId: string = "default") {
+    const instance = this.getInstance(userId);
+    if (instance.sock) {
+      instance.sock.end(undefined);
+      instance.sock = null;
+      instance.status = "offline";
+      instance.qr = null;
+      this.log(userId, "info", "Bot stopped.");
     }
   }
 
-  public async logout() {
-    if (this.sock) {
-      await this.sock.logout();
-      this.sock = null;
-      this.status = "offline";
-      this.qr = null;
-      const userDir = this.currentUserId ? path.join(this.authDir, this.currentUserId) : this.authDir;
-      if (fs.existsSync(userDir)) {
-        fs.rmSync(userDir, { recursive: true, force: true });
-      }
-      this.log("info", "Logged out and session cleared.");
+  public async logout(userId: string = "default") {
+    const instance = this.getInstance(userId);
+    if (instance.sock) {
+      await instance.sock.logout();
+      instance.sock = null;
+      instance.status = "offline";
+      instance.qr = null;
+      const userDir = userId === "default" ? this.authDir : path.join(this.authDir, userId);
+      if (fs.existsSync(userDir)) fs.rmSync(userDir, { recursive: true, force: true });
+      this.log(userId, "info", "Logged out and session cleared.");
     }
   }
 
-  private async log(level: "info" | "warn" | "error", message: string) {
-    console.log(`[${level.toUpperCase()}] ${message}`);
-    await storage.addLog(level, message);
+  private async log(userId: string, level: "info" | "warn" | "error", message: string) {
+    console.log(`[${userId.toUpperCase()}] [${level.toUpperCase()}] ${message}`);
+    if (userId !== "default") {
+      await storage.addUserLog(userId, level, message);
+    } else {
+      await storage.addLog(level, message);
+    }
   }
 }
 
