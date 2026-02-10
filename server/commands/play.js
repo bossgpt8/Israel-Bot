@@ -1,89 +1,122 @@
-// play.ts (updated for youtube-dl-exec)
-import ytdl from 'youtube-dl-exec';
-import { tmpdir } from 'os';
-import { join } from 'path';
-import { writeFile, unlink } from 'fs/promises';
+const { exec } = require("child_process");
+const path = require("path");
+const fs = require("fs");
 
-export default async function playCommand(sock, chatId, senderId, mentionedJids, message, args) {
+async function songCommand(
+  sock,
+  chatId,
+  senderId,
+  mentionedJids,
+  message,
+  args,
+) {
   try {
-    const searchQuery = args?.join(' ')?.trim();
+    const searchQuery = args && args.length > 0 ? args.join(" ").trim() : "";
+
     if (!searchQuery) {
-      return await sock.sendMessage(chatId, {
-        text: "🎵 What song do you want to download?\n\nUsage: .play <song name>"
-      }, { quoted: message });
+      return await sock.sendMessage(
+        chatId,
+        {
+          text: "🎵 ᴡʜᴀᴛ sᴏɴɢ ᴅᴏ ʏᴏᴜ ᴡᴀɴᴛ ᴛᴏ ᴅᴏᴡɴʟᴏᴀᴅ?\n\nUsage: .song <song name>",
+        },
+        { quoted: message },
+      );
     }
 
-    await sock.sendMessage(chatId, {
-      text: "🎧 Processing your request..."
-    }, { quoted: message });
+    await sock.sendMessage(
+      chatId,
+      {
+        text: "🎧 ᴘʀᴏᴄᴇssɪɴɢ ʏᴏᴜʀ ʀᴇQᴜᴇsᴛ...",
+      },
+      { quoted: message },
+    );
 
-    // Search and get metadata
-    const result = await ytdl(`ytsearch1:${searchQuery}`, {
-      dumpSingleJson: true,
-      noWarnings: true,
-      noCallHome: true,
-      noCheckCertificate: true,
+    const tmpDir = path.join(process.cwd(), "tmp");
+    if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
+
+    const metaCommand = `yt-dlp --print "%(title)s|%(duration_string)s|%(view_count)s|%(uploader)s|%(thumbnail)s" "ytsearch1:${searchQuery}"`;
+    exec(metaCommand, async (metaError, metaOut) => {
+      if (metaError || !metaOut) {
+        return await sock.sendMessage(
+          chatId,
+          { text: "❌ ғᴀɪʟᴇᴅ ᴛᴏ ғᴇᴛᴄʜ ᴠɪᴅᴇᴏ ᴍᴇᴛᴀᴅᴀᴛᴀ." },
+          { quoted: message },
+        );
+      }
+
+      const [title, duration, views, author, thumbnail] = metaOut
+        .trim()
+        .split("|");
+      const fileName = `${title.replace(/[/\\?%*:|"<>]/g, "-")}.mp3`;
+      const filePath = path.join(tmpDir, `song_${Date.now()}.mp3`);
+
+      const { channelInfo } = require("../lib/messageConfig");
+      const metadataMsg = `🎧 *ᴀᴜᴅɪᴏ ᴅᴏᴡɴʟᴏᴀᴅᴇʀ* 🎶
+
+• *ᴛɪᴛʟᴇ   : ${title}*
+• *ᴅᴜʀᴀᴛɪᴏɴ: ${duration}*
+• *ᴠɪᴇᴡs   : ${views}*
+• *ᴀᴜᴛʜᴏʀ   : ${author}*
+• *sᴛᴀᴛᴜs   : ᴅᴏᴡɴʟᴏᴀᴅɪɴɢ...*
+
+> *© Pᴏᴡᴇʀᴇᴅ Bʏ Bᴏss Bᴏᴛ*`;
+
+      await sock.sendMessage(
+        chatId,
+        {
+          image: { url: thumbnail },
+          caption: metadataMsg,
+          ...channelInfo,
+        },
+        { quoted: message },
+      );
+
+      const command = `yt-dlp -x --audio-format mp3 --output "${filePath}" "ytsearch1:${searchQuery}"`;
+
+      exec(command, async (error) => {
+        if (error) {
+          return await sock.sendMessage(
+            chatId,
+            { text: "❌ ᴅᴏᴡɴʟᴏᴀᴅ ғᴀɪʟᴇᴅ." },
+            { quoted: message },
+          );
+        }
+
+        const stats = fs.statSync(filePath);
+        const fileSizeMB = stats.size / (1024 * 1024);
+
+        const { channelInfo } = require("../lib/messageConfig");
+        if (fileSizeMB > 100) {
+          await sock.sendMessage(
+            chatId,
+            {
+              document: { url: filePath },
+              mimetype: "audio/mpeg",
+              fileName: fileName,
+              caption: `*${title}*`,
+              ...channelInfo,
+            },
+            { quoted: message },
+          );
+        } else {
+          await sock.sendMessage(
+            chatId,
+            {
+              audio: { url: filePath },
+              mimetype: "audio/mpeg",
+              fileName: fileName,
+              ...channelInfo,
+            },
+            { quoted: message },
+          );
+        }
+
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+      });
     });
-
-    if (!result || !result.url) {
-      return await sock.sendMessage(chatId, { text: "❌ No video found." }, { quoted: message });
-    }
-
-    const { title, duration_string: duration, view_count: views, uploader: author, thumbnail } = result;
-
-    const metadataMsg = `🎧 *AUDIO DOWNLOADER* 🎶
-
-• *Title   : ${title}*
-• *Duration: ${duration}*
-• *Views   : ${views}*
-• *Author   : ${author}*
-• *Status   : Downloading...*
-
-🔥 [Click here for thumbnail](${thumbnail})
-
-> *© Powered by Boss Bot*`;
-
-    await sock.sendMessage(chatId, {
-      text: metadataMsg,
-      linkPreview: true
-    }, { quoted: message });
-
-    const safeTitle = title.replace(/[/\\?%*:|"<>]/g, '-');
-    const filePath = join(tmpdir(), `${safeTitle}.mp3`);
-
-    // Download audio
-    await ytdl(result.url, {
-      extractAudio: true,
-      audioFormat: 'mp3',
-      output: filePath,
-      noWarnings: true,
-      noCallHome: true,
-      noCheckCertificate: true,
-    });
-
-    const stats = await import('fs').then(fs => fs.promises.stat(filePath));
-    const fileSizeMB = stats.size / (1024 * 1024);
-
-    if (fileSizeMB > 100) {
-      await sock.sendMessage(chatId, {
-        document: { url: filePath },
-        mimetype: "audio/mpeg",
-        fileName: `${safeTitle}.mp3`,
-        caption: `*${title}*\n\n> View updates here: 120363426051727952@newsletter`
-      }, { quoted: message });
-    } else {
-      await sock.sendMessage(chatId, {
-        audio: { url: filePath },
-        mimetype: "audio/mpeg",
-        caption: "> View updates here: 120363426051727952@newsletter"
-      }, { quoted: message });
-    }
-
-    // Cleanup
-    await unlink(filePath).catch(() => {});
-
   } catch (error) {
-    console.error('YT-DLP Error:', error);
-    await sock.sendMessage(chatId, { text: "❌ Download failed." }, { quoted: message });
+    console.error("Error in song command:", error);
   }
 }
+
+module.exports = songCommand;
