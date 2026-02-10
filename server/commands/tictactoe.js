@@ -115,53 +115,21 @@ async function handleTicTacToeMove(sock, chatId, senderId, mentionedJids, messag
         const isSurrender = /^(surrender|give up|.surrender|.stop)$/i.test(text);
         
         if (!isSurrender && !/^[1-9]$/.test(text)) {
-            // Check if it's a join command .ttt
-            if (/^\.(ttt|tictactoe)$/i.test(text) && room.state === 'WAITING') {
-                // Main command handles WAITING -> PLAYING
-            }
             return;
         }
 
-        // Allow surrender at any time, not just during player's turn
-        if (senderId !== room.game.currentTurn && !isSurrender) {
-            await sock.sendMessage(chatId, { 
-                text: '❌ Not your turn!' 
-            });
-            return;
-        }
-
-        let ok = isSurrender ? true : room.game.turn(
-            senderId === room.game.playerO,
-            parseInt(text) - 1
-        );
-
-        if (!ok) {
-            await sock.sendMessage(chatId, { 
-                text: '❌ Invalid move! That position is already taken.' 
-            });
-            return;
-        }
-
-        let winner = room.game.winner;
-        let isTie = room.game.turns === 9;
-
-        const arr = room.game.render().map(v => ({
-            'X': '❎',
-            'O': '⭕',
-            '1': '1️⃣',
-            '2': '2️⃣',
-            '3': '3️⃣',
-            '4': '4️⃣',
-            '5': '5️⃣',
-            '6': '6️⃣',
-            '7': '7️⃣',
-            '8': '8️⃣',
-            '9': '9️⃣',
-        }[v]));
-
+        // Allow surrender at any time if in room
         if (isSurrender) {
+            // Find the room where the sender is playing
+            const playerRoom = Object.values(games).find(room => 
+                room.id.startsWith('tictactoe') && 
+                [room.game.playerX, room.game.playerO].includes(senderId)
+            );
+            
+            if (!playerRoom) return;
+
             // Set the winner to the opponent of the surrendering player
-            winner = senderId === room.game.playerX ? room.game.playerO : room.game.playerX;
+            const winner = senderId === playerRoom.game.playerX ? playerRoom.game.playerO : playerRoom.game.playerX;
             
             // Send a surrender message
             await sock.sendMessage(chatId, { 
@@ -170,7 +138,15 @@ async function handleTicTacToeMove(sock, chatId, senderId, mentionedJids, messag
             });
             
             // Delete the game immediately after surrender
-            delete games[room.id];
+            if (playerRoom.timeout) clearTimeout(playerRoom.timeout);
+            delete games[playerRoom.id];
+            return;
+        }
+
+        if (senderId !== room.game.currentTurn) {
+            await sock.sendMessage(chatId, { 
+                text: '❌ Not your turn!' 
+            });
             return;
         }
 

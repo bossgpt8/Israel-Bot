@@ -4,7 +4,7 @@ const channelInfo = {
         isForwarded: true,
         forwardedNewsletterMessageInfo: {
             newsletterJid: "120363426051727952@newsletter",
-            newsletterName: "Boss Bot-MD",
+            newsletterName: "Boss Bot-MD Updates",
             serverMessageId: -1,
         },
         externalAdReply: {
@@ -13,7 +13,7 @@ const channelInfo = {
             thumbnailUrl: "https://i.imgur.com/fRaOmQH.jpeg",
             sourceUrl: "https://whatsapp.com/channel/0029VbCYfhjLikgG5NQ7IN2u",
             mediaType: 1,
-            renderLargerThumbnail: true,
+            renderLargerThumbnail: false,
             showAdAttribution: true
         }
     },
@@ -25,7 +25,7 @@ const channelInfo = {
             type: 1
         }
     ],
-    footer: 'Powered by Israel'
+    footer: 'Forwarded from Boss Bot-MD Updates'
 };
 
 module.exports = {

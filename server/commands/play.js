@@ -23,10 +23,12 @@ async function songCommand(
       );
     }
 
+    const { channelInfo } = require("../lib/messageConfig");
     await sock.sendMessage(
       chatId,
       {
         text: "🎧 ᴘʀᴏᴄᴇssɪɴɢ ʏᴏᴜʀ ʀᴇQᴜᴇsᴛ...",
+        ...channelInfo
       },
       { quoted: message },
     );

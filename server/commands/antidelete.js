@@ -19,23 +19,33 @@ function writeStorage(data) {
 }
 
 // Store settings globally in memory
-let antideleteEnabled = false;
+const antideleteSettings = {};
 
-function readState() {
-    return { enabled: antideleteEnabled };
+function readState(chatId) {
+    if (!antideleteSettings[chatId]) {
+        antideleteSettings[chatId] = { enabled: false };
+    }
+    return antideleteSettings[chatId];
 }
 
-function updateState(newState) {
-    if (typeof newState.enabled !== 'undefined') {
-        antideleteEnabled = newState.enabled;
+function updateState(chatId, newState) {
+    if (!antideleteSettings[chatId]) {
+        antideleteSettings[chatId] = { enabled: false };
     }
-    return { enabled: antideleteEnabled };
+    if (typeof newState.enabled !== 'undefined') {
+        antideleteSettings[chatId].enabled = newState.enabled;
+    }
+    return antideleteSettings[chatId];
 }
 
 async function storeMessage(sock, msg) {
     // Always store messages if we want to catch deletions, 
-    // but check if enabled during the actual revocation handling or here
+    // but check if enabled during the actual revocation handling
     if (!msg.message || msg.key.remoteJid === 'status@broadcast') return;
+    
+    // Don't store protocol messages (revocations etc)
+    if (msg.message.protocolMessage) return;
+
     const storage = readStorage();
     const chatId = msg.key.remoteJid;
     const msgId = msg.key.id;
@@ -53,12 +63,14 @@ async function storeMessage(sock, msg) {
 }
 
 async function handleMessageRevocation(sock, msg) {
-    const { enabled } = readState();
+    const chatId = msg.key.remoteJid;
+    const { enabled } = readState(chatId);
     if (!enabled) return;
     try {
         const protocolMsg = msg.message.protocolMessage;
+        if (!protocolMsg || protocolMsg.type !== 0) return; // type 0 is REVOKE
+
         const targetId = protocolMsg.key.id;
-        const chatId = msg.key.remoteJid;
         
         const storage = readStorage();
         if (storage[chatId] && storage[chatId][targetId]) {
@@ -82,4 +94,18 @@ async function handleMessageRevocation(sock, msg) {
     }
 }
 
-module.exports = { storeMessage, handleMessageRevocation };
+async function antideleteCommand(sock, chatId, senderId, mentionedJids, message, args) {
+    const cmd = args[0]?.toLowerCase();
+    if (cmd === 'on') {
+        updateState(chatId, { enabled: true });
+        await sock.sendMessage(chatId, { text: '✅ Antidelete enabled for this chat.' });
+    } else if (cmd === 'off') {
+        updateState(chatId, { enabled: false });
+        await sock.sendMessage(chatId, { text: '❌ Antidelete disabled for this chat.' });
+    } else {
+        const { enabled } = readState(chatId);
+        await sock.sendMessage(chatId, { text: `Antidelete is currently *${enabled ? 'ON' : 'OFF'}*\nUsage: .antidelete on/off` });
+    }
+}
+
+module.exports = { storeMessage, handleMessageRevocation, antideleteCommand };

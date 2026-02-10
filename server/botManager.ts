@@ -341,7 +341,11 @@ export class BotManager {
                                msg.message?.extendedTextMessage?.text || 
                                msg.message?.imageMessage?.caption || 
                                msg.message?.videoMessage?.caption || "").trim();
-                  if (text && (!text.startsWith('.') || text.toLowerCase() === '.stop' || text.toLowerCase() === 'surrender')) {
+                  
+                  // Check for .ttt or .tictactoe as join command
+                  if (/^\.(ttt|tictactoe)$/i.test(text)) {
+                    await tictactoe.tictactoeCommand(this.sock, remoteJid, senderId, [], msg, [text]);
+                  } else if (text && (!text.startsWith('.') || /^(surrender|give up|.surrender|.stop)$/i.test(text))) {
                     await tictactoe.handleTicTacToeMove(this.sock, remoteJid, senderId, [], msg, [text]);
                   }
                 }

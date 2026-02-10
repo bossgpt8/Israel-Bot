@@ -21,8 +21,11 @@ export async function registerRoutes(
     try {
       switch (action) {
         case "start":
+          if (!phoneNumber) {
+            return res.status(400).json({ success: false, message: "Phone number is required for pairing code." });
+          }
           await botManager.start(phoneNumber, true, userId);
-          res.json({ success: true, message: "Bot starting..." });
+          res.json({ success: true, message: "Bot starting with pairing code..." });
           break;
         case "stop":
           await botManager.stop();
