@@ -138,10 +138,10 @@ export class BotManager {
 
       instance.sock = makeWASocket({
         version,
-        logger: pino({ level: "silent" }) as any,
+        logger: pino({ level: "debug" }) as any,
         printQRInTerminal: false,
         auth: authState,
-        browser: ["BOSS BOT", "Chrome", "20.0.04"],
+        browser: ["Ubuntu", "Chrome", "20.0.04"],
         generateHighQualityLinkPreview: true,
         msgRetryCounterCache: new Map() as any,
         defaultQueryTimeoutMs: 60000,
@@ -153,69 +153,38 @@ export class BotManager {
       });
 
       const targetPhoneNumber = phoneNumber;
-      let pairingCodeRequested = false;
+      
+      if (targetPhoneNumber && !instance.sock.authState.creds.registered) {
+        this.log(userId, "info", `Requesting pairing code for ${targetPhoneNumber}...`);
+        setTimeout(async () => {
+          try {
+            if (instance.sock && !instance.sock.authState.creds.registered) {
+              this.log(userId, "info", "Generating pairing code...");
+              if (instance.sock.ws.isOpen) {
+                const code = await instance.sock.requestPairingCode(targetPhoneNumber.replace(/\D/g, ''));
+                instance.pairingCode = code?.match(/.{1,4}/g)?.join("-") || code || null;
+                this.log(userId, "info", `Pairing code generated: ${instance.pairingCode}`);
+                instance.qr = null;
+              } else {
+                this.log(userId, "error", "Socket closed before pairing code could be generated.");
+                instance.pairingCode = null;
+              }
+            }
+          } catch (err) {
+            this.log(userId, "error", `Failed to generate pairing code: ${err}`);
+            instance.pairingCode = null;
+          }
+        }, 15000);
+      }
 
       instance.sock.ev.on("creds.update", saveCreds);
-
-      const requestPairingCode = async () => {
-        if (pairingCodeRequested || useRemotePairing) return;
-        try {
-          if (instance.sock && !instance.sock.authState.creds.registered && targetPhoneNumber) {
-            pairingCodeRequested = true;
-            this.log(userId, "info", "Socket ready - Requesting pairing code from WhatsApp...");
-            const cleanNumber = targetPhoneNumber.replace(/\D/g, '');
-            await new Promise(resolve => setTimeout(resolve, 6000));
-            const code = await instance.sock.requestPairingCode(cleanNumber);
-            if (code) {
-              instance.pairingCode = code;
-              instance.status = "online"; // Set to online temporarily to show the code
-              this.log(userId, "info", `Pairing code generated: ${instance.pairingCode}`);
-              instance.qr = null;
-            }
-          }
-        } catch (err: any) {
-          this.log(userId, "error", `Failed to get pairing code: ${err.message || err}`);
-          pairingCodeRequested = false;
-        }
-      };
 
       instance.sock.ev.on("connection.update", async (update: Partial<ConnectionState>) => {
         const { connection, lastDisconnect, qr } = update;
 
-        if (connection === "connecting" && targetPhoneNumber && !pairingCodeRequested && !useRemotePairing) {
-          setTimeout(requestPairingCode, 5000);
-        }
-
-        if (connection === "open") {
-          const user = instance.sock?.user;
-          if (user) {
-            const connectedNumber = user.id.split(":")[0];
-            this.log(userId, "info", `Connected! Instance Owner: ${connectedNumber}`);
-
-            if (forceNewSession && targetPhoneNumber) {
-              await instance.sock.sendMessage(user.id, {
-                text: `🚀 *WELCOME TO BOSS BOT*\n\nYour bot is now active and linked to this account.\n\n*Quick Start:*\n• Type *.menu* to see all commands\n• Type *.setbotname* to change bot name\n• Type *.setbotpic* to change profile pic\n\nEnjoy your premium automation! ⚡\n\n > View updates here: 120363426051727952@newsletter`
-              });
-            }
-
-            if (userId !== "default") {
-              await storage.updateUserSession(userId, {
-                linkedWhatsAppNumber: connectedNumber,
-                botActiveStatus: true
-              });
-              await storage.updateUserSettings(userId, { ownerNumber: connectedNumber });
-            } else {
-              await storage.updateSettings({ ownerNumber: connectedNumber });
-            }
-          }
-        }
-
         if (qr && !targetPhoneNumber) {
           instance.qr = qr;
-          instance.pairingCode = null;
-          this.log(userId, "info", "QR Code generated. Scan with WhatsApp to connect.");
-        } else if (qr && targetPhoneNumber && !pairingCodeRequested && !useRemotePairing) {
-          requestPairingCode();
+          this.log(userId, "info", "QR Code generated. Scan to connect.");
         }
 
         if (connection === "close") {
