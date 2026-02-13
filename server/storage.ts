@@ -32,18 +32,27 @@ export interface IStorage {
 export class FirestoreStorage implements IStorage {
   async getSettings(): Promise<BotSettings> {
     const docRef = doc(db, "bot_settings", "global");
-    const docSnap = await getDoc(docRef);
-    if (!docSnap.exists()) {
+    try {
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        return docSnap.data() as any;
+      }
       const defaultSettings = { id: 1, botName: "Boss", ownerNumber: "2349164898577", publicMode: true, autoRead: false, welcomeEnabled: false, goodbyeEnabled: false, autoStatusRead: false, autoTyping: false };
       await setDoc(docRef, defaultSettings);
       return defaultSettings as any;
+    } catch (error) {
+      console.warn("Firestore offline or error, using defaults:", error);
+      return { id: 1, botName: "Boss", ownerNumber: "2349164898577", publicMode: true, autoRead: false, welcomeEnabled: false, goodbyeEnabled: false, autoStatusRead: false, autoTyping: false } as any;
     }
-    return docSnap.data() as any;
   }
 
   async updateSettings(updates: UpdateBotSettings): Promise<BotSettings> {
     const docRef = doc(db, "bot_settings", "global");
-    await updateDoc(docRef, { ...updates, updatedAt: serverTimestamp() });
+    try {
+      await updateDoc(docRef, { ...updates, updatedAt: serverTimestamp() });
+    } catch (e) {
+      console.warn("Failed to update settings in Firestore:", e);
+    }
     return this.getSettings();
   }
 
@@ -85,17 +94,27 @@ export class FirestoreStorage implements IStorage {
 
   async getUserSettings(userId: string): Promise<UserSettings> {
     const docRef = doc(db, "user_settings", userId);
-    const docSnap = await getDoc(docRef);
-    if (!docSnap.exists()) {
+    try {
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        return docSnap.data() as any;
+      }
       const defaultSet = { userId, botName: "Boss", publicMode: true };
       await setDoc(docRef, defaultSet);
       return defaultSet as any;
+    } catch (error) {
+      console.warn(`Firestore offline for user ${userId}, using defaults:`, error);
+      return { userId, botName: "Boss", publicMode: true } as any;
     }
-    return docSnap.data() as any;
   }
 
   async updateUserSettings(userId: string, updates: UpdateUserSettings): Promise<UserSettings> {
-    await updateDoc(doc(db, "user_settings", userId), { ...updates, updatedAt: serverTimestamp() });
+    const docRef = doc(db, "user_settings", userId);
+    try {
+      await updateDoc(docRef, { ...updates, updatedAt: serverTimestamp() });
+    } catch (e) {
+      console.warn(`Failed to update user settings for ${userId}:`, e);
+    }
     return this.getUserSettings(userId);
   }
 
