@@ -87,7 +87,8 @@ export async function handleCommand(sock: WASocket, msg: proto.IWebMessageInfo, 
   }
 
   if (settings.publicMode === false && !isFromMe) {
-    if (!(await checkIsOwner(sender, sock, remoteJid))) {
+    const isOwner = await checkIsOwner(sender, sock, remoteJid);
+    if (!isOwner) {
       await sock.sendMessage(remoteJid, { text: "⚠️ Bot is currently in *Private Mode*. Only the owner can use commands." });
       return;
     }
