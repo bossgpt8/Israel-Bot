@@ -1,121 +1,45 @@
-const fs = require('fs');
-const path = require('path');
-const isOwnerOrSudo = require('../lib/isOwner');
+const { storage } = require('../storage');
 
-const channelInfo = {
-    contextInfo: {
-        forwardingScore: 1,
-        isForwarded: true,
-        forwardedNewsletterMessageInfo: {
-            newsletterJid: '120363161513685998@newsletter',
-            newsletterName: 'Boss Bot-MD',
-            serverMessageId: -1
-        }
-    }
-};
-
-// Path to store auto status configuration
-const configPath = path.join(__dirname, '../data/autoStatus.json');
-
-// Initialize config file if it doesn't exist
-if (!fs.existsSync(configPath)) {
-    fs.writeFileSync(configPath, JSON.stringify({ 
-        enabled: false, 
-        reactOn: false 
-    }));
-}
-
-async function autoStatusCommand(sock, chatId, msg, args) {
+async function autoStatusCommand(sock, chatId, senderId, mentionedJids, message, args, userId) {
     try {
-        const senderId = msg.key?.participant || msg.key?.remoteJid;
-        if (!senderId) throw new Error("Could not determine sender ID");
-        const isOwner = await isOwnerOrSudo(senderId, sock, chatId);
-        
-        if (!msg.key.fromMe && !isOwner) {
-            await sock.sendMessage(chatId, { 
-                text: '❌ This command can only be used by the owner!',
-                ...channelInfo
-            });
+        const settings = userId ? await storage.getUserSettings(userId) : await storage.getSettings();
+        const isOwner = message.key?.fromMe || settings.ownerNumber === senderId.split('@')[0] || settings.ownerNumber === senderId.split(':')[0];
+
+        if (!isOwner) {
+            await sock.sendMessage(chatId, { text: '❌ Only bot owner can use this command!' }, { quoted: message });
             return;
         }
 
-        // Read current config
-        let config = JSON.parse(fs.readFileSync(configPath));
+        const command = args[0]?.toLowerCase();
+        let newValue;
 
-        // If no arguments, show current status
-        if (!args || args.length === 0) {
-            const status = config.enabled ? 'enabled' : 'disabled';
-            const reactStatus = config.reactOn ? 'enabled' : 'disabled';
-            await sock.sendMessage(chatId, { 
-                text: `🔄 *Auto Status Settings*\n\n📱 *Auto Status View:* ${status}\n💫 *Status Reactions:* ${reactStatus}\n\n*Commands:*\n.autostatus on - Enable auto status view\n.autostatus off - Disable auto status view\n.autostatus react on - Enable status reactions\n.autostatus react off - Disable status reactions`,
-                ...channelInfo
-            });
-            return;
-        }
-
-        // Handle on/off commands
-        const command = args[0].toLowerCase();
-        
         if (command === 'on') {
-            config.enabled = true;
-            fs.writeFileSync(configPath, JSON.stringify(config));
-            await sock.sendMessage(chatId, { 
-                text: '✅ Auto status view has been enabled!\nBot will now automatically view all contact statuses.',
-                ...channelInfo
-            });
+            newValue = true;
         } else if (command === 'off') {
-            config.enabled = false;
-            fs.writeFileSync(configPath, JSON.stringify(config));
-            await sock.sendMessage(chatId, { 
-                text: '❌ Auto status view has been disabled!\nBot will no longer automatically view statuses.',
-                ...channelInfo
-            });
-        } else if (command === 'react') {
-            // Handle react subcommand
-            if (!args[1]) {
-                await sock.sendMessage(chatId, { 
-                    text: '❌ Please specify on/off for reactions!\nUse: .autostatus react on/off',
-                    ...channelInfo
-                });
-                return;
-            }
-            
-            const reactCommand = args[1].toLowerCase();
-            if (reactCommand === 'on') {
-                config.reactOn = true;
-                fs.writeFileSync(configPath, JSON.stringify(config));
-                await sock.sendMessage(chatId, { 
-                    text: '💫 Status reactions have been enabled!\nBot will now react to status updates.',
-                    ...channelInfo
-                });
-            } else if (reactCommand === 'off') {
-                config.reactOn = false;
-                fs.writeFileSync(configPath, JSON.stringify(config));
-                await sock.sendMessage(chatId, { 
-                    text: '❌ Status reactions have been disabled!\nBot will no longer react to status updates.',
-                    ...channelInfo
-                });
-            } else {
-                await sock.sendMessage(chatId, { 
-                    text: '❌ Invalid reaction command! Use: .autostatus react on/off',
-                    ...channelInfo
-                });
-            }
+            newValue = false;
         } else {
-            await sock.sendMessage(chatId, { 
-                text: '❌ Invalid command! Use:\n.autostatus on/off - Enable/disable auto status view\n.autostatus react on/off - Enable/disable status reactions',
-                ...channelInfo
-            });
+            newValue = !settings.autoStatusRead;
         }
+
+        if (userId) {
+            await storage.updateUserSettings(userId, { autoStatusRead: newValue });
+        } else {
+            await storage.updateSettings({ autoStatusRead: newValue });
+        }
+
+        await sock.sendMessage(chatId, { 
+            text: `✅ Auto status view has been ${newValue ? 'enabled' : 'disabled'}!`
+        }, { quoted: message });
 
     } catch (error) {
         console.error('Error in autostatus command:', error);
-        await sock.sendMessage(chatId, { 
-            text: '❌ Error occurred while managing auto status!\n' + error.message,
-            ...channelInfo
-        });
     }
 }
+
+module.exports = {
+    execute: autoStatusCommand,
+    autoStatusCommand
+};
 
 // Function to check if auto status is enabled
 function isAutoStatusEnabled() {

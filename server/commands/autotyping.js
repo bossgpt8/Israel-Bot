@@ -1,55 +1,42 @@
-const fs = require('fs');
-const path = require('path');
-const isOwnerOrSudo = require('../lib/isOwner');
+const { storage } = require('../storage');
 
-const configPath = path.join(__dirname, '..', 'data', 'autotyping.json');
-
-function initConfig() {
-    const dir = path.dirname(configPath);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    if (!fs.existsSync(configPath)) {
-        fs.writeFileSync(configPath, JSON.stringify({ enabled: false }, null, 2));
-    }
-    return JSON.parse(fs.readFileSync(configPath));
-}
-
-async function autotypingCommand(sock, chatId, senderId, mentionedJids, message, args) {
+async function autotypingCommand(sock, chatId, senderId, mentionedJids, message, args, userId) {
     try {
-        const isOwner = await isOwnerOrSudo(senderId, sock, chatId);
-        const isFromMe = message.key?.fromMe || false;
-        
-        if (!isFromMe && !isOwner) {
-            await sock.sendMessage(chatId, { text: '❌ This command is only available for the owner!' }, { quoted: message });
+        const settings = userId ? await storage.getUserSettings(userId) : await storage.getSettings();
+        const isOwner = message.key?.fromMe || settings.ownerNumber === senderId.split('@')[0] || settings.ownerNumber === senderId.split(':')[0];
+
+        if (!isOwner) {
+            await sock.sendMessage(chatId, { text: '❌ Only bot owner can use this command!' }, { quoted: message });
             return;
         }
 
-        const config = initConfig();
-        
-        if (args && args.length > 0) {
-            const action = args[0].toLowerCase();
-            if (action === 'on' || action === 'enable') {
-                config.enabled = true;
-            } else if (action === 'off' || action === 'disable') {
-                config.enabled = false;
-            } else {
-                await sock.sendMessage(chatId, { text: '❌ Invalid option! Use: .autotyping on/off' }, { quoted: message });
-                return;
-            }
+        const option = args[0]?.toLowerCase();
+        let newValue;
+
+        if (option === 'on') {
+            newValue = true;
+        } else if (option === 'off') {
+            newValue = false;
         } else {
-            config.enabled = !config.enabled;
+            newValue = !settings.autoTyping;
         }
-        
-        fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
-        
-        await sock.sendMessage(chatId, {
-            text: `✅ Auto-typing has been ${config.enabled ? 'enabled' : 'disabled'}!`
-        }, { quoted: message });
-        
-    } catch (error) {
-        console.error('Error in autotyping command:', error);
-        await sock.sendMessage(chatId, { text: '❌ Error processing command!' }, { quoted: message });
+
+        if (userId) {
+            await storage.updateUserSettings(userId, { autoTyping: newValue });
+        } else {
+            await storage.updateSettings({ autoTyping: newValue });
+        }
+
+        await sock.sendMessage(chatId, { text: `✅ Auto Typing turned ${newValue ? '*ON*' : '*OFF*'}` }, { quoted: message });
+    } catch (err) {
+        console.error("Error in autotyping:", err);
     }
 }
+
+module.exports = {
+    execute: autotypingCommand,
+    autotypingCommand
+};
 
 function isAutotypingEnabled() {
     try {
