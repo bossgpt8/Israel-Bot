@@ -4,10 +4,14 @@ import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { botManager } from "./botManager";
 
+import cors from "cors";
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  app.use(cors());
+
   // Bot Status
   app.get(api.bot.status.path, (req, res) => {
     res.json(botManager.getStatus());

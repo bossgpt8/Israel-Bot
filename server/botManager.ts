@@ -61,15 +61,35 @@ export class BotManager {
     instance.pairingCode = null;
     instance.qr = null;
     
-    this.log(userId, "info", `Starting Boss Bot for user ${userId}...`);
+    const bootLogs = [
+      "Initializing...",
+      "Initialized",
+      "Starting bot...",
+      "Bot started",
+      "Checking for session file..."
+    ];
+
+    for (const logMsg of bootLogs) {
+      this.log(userId, "info", logMsg);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
 
     try {
       const userAuthDir = userId === "default" ? this.authDir : path.join(this.authDir, userId);
+      let sessionExists = false;
 
-      if (forceNewSession && phoneNumber) {
-        await fs.remove(userAuthDir);
+      if (!forceNewSession) {
+        sessionExists = await downloadSession(userId, this.authDir);
+      }
+
+      if (sessionExists) {
+        this.log(userId, "info", "Session file found");
+        this.log(userId, "info", "Establishing connection...");
       } else {
-        await downloadSession(userId, this.authDir);
+        this.log(userId, "info", "No session file found. Please link the bot again.");
+        if (forceNewSession) {
+          await fs.remove(userAuthDir);
+        }
       }
 
       await fs.ensureDir(userAuthDir);
@@ -101,30 +121,26 @@ export class BotManager {
         await uploadSession(userId, this.authDir);
       });
 
-      const targetPhoneNumber = phoneNumber;
-      if (targetPhoneNumber && !instance.sock.authState.creds.registered) {
-        this.log(userId, "info", `Requesting pairing code for ${targetPhoneNumber}...`);
-        setTimeout(async () => {
-          try {
-            if (instance.sock && !instance.sock.authState.creds.registered && instance.sock.ws.isOpen) {
-              const code = await instance.sock.requestPairingCode(targetPhoneNumber.replace(/\D/g, ''));
-              instance.pairingCode = code?.match(/.{1,4}/g)?.join("-") || code || null;
-              this.log(userId, "info", `Pairing code generated: ${instance.pairingCode}`);
-              instance.qr = null;
+      if (!instance.sock.authState.creds.registered) {
+        if (phoneNumber) {
+          this.log(userId, "info", `Requesting pairing code for ${phoneNumber}...`);
+          setTimeout(async () => {
+            try {
+              if (instance.sock && !instance.sock.authState.creds.registered && instance.sock.ws.isOpen) {
+                const code = await instance.sock.requestPairingCode(phoneNumber.replace(/\D/g, ''));
+                instance.pairingCode = code?.match(/.{1,4}/g)?.join("-") || code || null;
+                this.log(userId, "info", `Pairing code generated: ${instance.pairingCode}`);
+                instance.qr = null;
+              }
+            } catch (err) {
+              this.log(userId, "error", `Failed to generate pairing code: ${err}`);
             }
-          } catch (err) {
-            this.log(userId, "error", `Failed to generate pairing code: ${err}`);
-          }
-        }, 10000);
+          }, 3000);
+        }
       }
 
       instance.sock.ev.on("connection.update", async (update: Partial<ConnectionState>) => {
-        const { connection, lastDisconnect, qr } = update;
-
-        if (qr && !targetPhoneNumber) {
-          instance.qr = qr;
-          this.log(userId, "info", "QR Code generated.");
-        }
+        const { connection, lastDisconnect } = update;
 
         if (connection === "close") {
           const statusCode = (lastDisconnect?.error as Boom)?.output?.statusCode;
@@ -135,8 +151,8 @@ export class BotManager {
           instance.qr = null;
           instance.pairingCode = null;
 
-          if (shouldReconnect && instance.reconnectAttempts < this.maxReconnectAttempts) {
-            instance.reconnectAttempts++;
+          if (shouldReconnect) {
+            this.log(userId, "info", "Auto-reconnecting...");
             setTimeout(() => this.start(undefined, false, userId), 5000);
           } else if (statusCode === DisconnectReason.loggedOut) {
             await fs.remove(userAuthDir);
@@ -146,7 +162,7 @@ export class BotManager {
           instance.status = "online";
           instance.qr = null;
           instance.reconnectAttempts = 0;
-          this.log(userId, "info", "Connected to WhatsApp!");
+          this.log(userId, "info", "Connected to WhatsApp");
           
           const user = instance.sock?.user;
           if (user) {

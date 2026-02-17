@@ -22,14 +22,14 @@ export async function uploadSession(userId: string, authDir: string) {
   }
 }
 
-export async function downloadSession(userId: string, authDir: string) {
-  if (!supabaseUrl || !supabaseKey) return;
+export async function downloadSession(userId: string, authDir: string): Promise<boolean> {
+  if (!supabaseUrl || !supabaseKey) return false;
 
   const userDir = path.join(authDir, userId);
   await fs.ensureDir(userDir);
 
   const { data: files } = await supabase.storage.from(BUCKET_NAME).list(userId);
-  if (files) {
+  if (files && files.length > 0) {
     for (const file of files) {
       const { data } = await supabase.storage.from(BUCKET_NAME).download(`${userId}/${file.name}`);
       if (data) {
@@ -37,5 +37,7 @@ export async function downloadSession(userId: string, authDir: string) {
         await fs.writeFile(path.join(userDir, file.name), buffer);
       }
     }
+    return true;
   }
+  return false;
 }
