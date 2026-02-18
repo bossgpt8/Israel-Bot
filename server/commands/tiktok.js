@@ -57,7 +57,7 @@ async function tiktokCommand(sock, chatId, senderId, mentionedJids, message, arg
                 await sock.sendMessage(chatId, {
                     video: { url: finalPath },
                     mimetype: "video/mp4",
-                    caption: title
+                    caption: `${title}\n\n> *ᴅᴏᴡɴʟᴏᴀᴅᴇᴅ ʙʏ ʙᴏss ʙᴏᴛ*`
                 }, { quoted: message });
 
                 if (fs.existsSync(filePath)) fs.unlinkSync(filePath);

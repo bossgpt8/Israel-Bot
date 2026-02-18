@@ -65,7 +65,12 @@ async function storeMessage(sock, msg) {
 async function handleMessageRevocation(sock, msg) {
     const chatId = msg.key.remoteJid;
     const { enabled } = readState(chatId);
-    if (!enabled) return;
+    
+    // Check if enabled globally or for this chat
+    const { storage } = require('../storage');
+    const settings = await storage.getSettings();
+    if (!enabled && !settings.antiDelete) return;
+
     try {
         const protocolMsg = msg.message.protocolMessage;
         if (!protocolMsg || protocolMsg.type !== 0) return; // type 0 is REVOKE
@@ -96,17 +101,23 @@ async function handleMessageRevocation(sock, msg) {
     }
 }
 
-async function antideleteCommand(sock, chatId, senderId, mentionedJids, message, args) {
+async function antideleteCommand(sock, chatId, senderId, mentionedJids, message, args, userId) {
     const cmd = args[0]?.toLowerCase();
+    const { storage } = require('../storage');
+    
     if (cmd === 'on') {
+        if (userId) await storage.updateUserSettings(userId, { antiDelete: true });
+        else await storage.updateSettings({ antiDelete: true });
         updateState(chatId, { enabled: true });
-        await sock.sendMessage(chatId, { text: '✅ Antidelete enabled for this chat.' });
+        await sock.sendMessage(chatId, { text: '✅ *ᴀɴᴛɪᴅᴇʟᴇᴛᴇ ᴇɴᴀʙʟᴇᴅ ғᴏʀ ᴛʜɪs ᴄʜᴀᴛ.*' });
     } else if (cmd === 'off') {
+        if (userId) await storage.updateUserSettings(userId, { antiDelete: false });
+        else await storage.updateSettings({ antiDelete: false });
         updateState(chatId, { enabled: false });
-        await sock.sendMessage(chatId, { text: '❌ Antidelete disabled for this chat.' });
+        await sock.sendMessage(chatId, { text: '❌ *ᴀɴᴛɪᴅᴇʟᴇᴛᴇ ᴅɪsᴀʙʟᴇᴅ ғᴏʀ ᴛʜɪs ᴄʜᴀᴛ.*' });
     } else {
         const { enabled } = readState(chatId);
-        await sock.sendMessage(chatId, { text: `Antidelete is currently *${enabled ? 'ON' : 'OFF'}*\nUsage: .antidelete on/off` });
+        await sock.sendMessage(chatId, { text: `*ᴀɴᴛɪᴅᴇʟᴇᴛᴇ ɪs ᴄᴜʀʀᴇɴᴛʟʏ* *${enabled ? 'ᴏɴ' : 'ᴏғғ'}\nᴜsᴀɢᴇ: .ᴀɴᴛɪᴅᴇʟᴇᴛᴇ ᴏɴ/ᴏғғ*` });
     }
 }
 

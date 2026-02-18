@@ -14,31 +14,32 @@ async function settingsCommand(sock, chatId, senderId, mentionedJids, message, a
         }
 
         const lines = [];
-        lines.push('*📊 BOT SETTINGS*');
+        lines.push('📊 *ʙᴏᴛ sᴇᴛᴛɪɴɢs*');
         lines.push('');
-        lines.push(`• Bot Name: ${settings.botName}`);
-        lines.push(`• Owner: ${settings.ownerNumber || 'Not set'}`);
-        lines.push(`• Mode: ${settings.publicMode ? '🌐 Public' : '🔒 Private'}`);
-        lines.push(`• Auto Read: ${settings.autoRead ? '✅ ON' : '❌ OFF'}`);
-        lines.push(`• Auto Status Read: ${settings.autoStatusRead ? '✅ ON' : '❌ OFF'}`);
-        lines.push(`• Auto Typing: ${settings.autoTyping ? '✅ ON' : '❌ OFF'}`);
-        lines.push(`• Anti Delete: ${settings.antiDelete ? '✅ ON' : '❌ OFF'}`);
-        lines.push(`• PM Blocker: ${settings.pmBlocker ? '✅ ON' : '❌ OFF'}`);
-        lines.push(`• Anti Call: ${settings.antiCall ? '✅ ON' : '❌ OFF'}`);
+        lines.push(`• ʙᴏᴛ ɴᴀᴍᴇ: ${settings.botName}`);
+        lines.push(`• ᴏᴡɴᴇʀ: ${settings.ownerNumber || 'ɴᴏᴛ sᴇᴛ'}`);
+        lines.push(`• ᴍᴏᴅᴇ: ${settings.publicMode ? '🌐 ᴘᴜʙʟɪᴄ' : '🔒 ᴘʀɪᴠᴀᴛᴇ'}`);
+        lines.push(`• ᴀᴜᴛᴏ ʀᴇᴀᴅ: ${settings.autoRead ? '✅ ᴏɴ' : '❌ ᴏғғ'}`);
+        lines.push(`• ᴀᴜᴛᴏ sᴛᴀᴛᴜs ʀᴇᴀᴅ: ${settings.autoStatusRead ? '✅ ᴏɴ' : '❌ ᴏғғ'}`);
+        lines.push(`• ᴀᴜᴛᴏ ᴛʏᴘɪɴɢ: ${settings.autoTyping ? '✅ ᴏɴ' : '❌ ᴏғғ'}`);
+        lines.push(`• ᴀɴᴛɪ ᴅᴇʟᴇᴛᴇ: ${settings.antiDelete ? '✅ ᴏɴ' : '❌ ᴏғғ'}`);
+        lines.push(`• ᴘᴍ ʙʟᴏᴄᴋᴇʀ: ${settings.pmBlocker ? '✅ ᴏɴ' : '❌ ᴏғғ'}`);
+        lines.push(`• ᴀɴᴛɪ ᴄᴀʟʟ: ${settings.antiCall ? '✅ ᴏɴ' : '❌ ᴏғғ'}`);
         lines.push('');
-        lines.push('*Available Commands:*');
-        lines.push('• .setbotname <name> - Change bot name');
-        lines.push('• .setowner <number> - Change bot owner');
-        lines.push('• .setbotpic - Change bot profile picture');
-        lines.push('• .mode public/private - Change bot mode');
-        lines.push('• .autoread on/off - Toggle auto read');
-        lines.push('• .autostatus on/off - Toggle auto status read');
-        lines.push('• .autotyping on/off - Toggle auto typing');
-        lines.push('• .antidelete on/off - Toggle anti delete');
-        lines.push('• .pmblocker on/off - Toggle PM blocker');
-        lines.push('• .anticall on/off - Toggle anti call');
+        lines.push('*ᴀᴠᴀɪʟᴀʙʟᴇ ᴄᴏᴍᴍᴀɴᴅs:*');
+        lines.push('• .sᴇᴛʙᴏᴛɴᴀᴍᴇ <ɴᴀᴍᴇ> - ᴄʜᴀɴɢᴇ ʙᴏᴛ ɴᴀᴍᴇ');
+        lines.push('• .sᴇᴛᴏᴡɴᴇʀ <ɴᴜᴍʙᴇʀ> - ᴄʜᴀɴɢᴇ ʙᴏᴛ ᴏᴡɴᴇʀ');
+        lines.push('• .sᴇᴛʙᴏᴛᴘɪᴄ - ᴄʜᴀɴɢᴇ ʙᴏᴛ ᴘʀᴏғɪʟᴇ ᴘɪᴄᴛᴜʀᴇ');
+        lines.push('• .ᴍᴏᴅᴇ ᴘᴜʙʟɪᴄ/ᴘʀɪᴠᴀᴛᴇ - ᴄʜᴀɴɢᴇ ʙᴏᴛ ᴍᴏᴅᴇ');
+        lines.push('• .ᴀᴜᴛᴏʀᴇᴀᴅ ᴏɴ/ᴏғғ - ᴛᴏɢɢʟᴇ ᴀᴜᴛᴏ ʀᴇᴀᴅ');
+        lines.push('• .ᴀᴜᴛᴏsᴛᴀᴛᴜs ᴏɴ/ᴏғғ - ᴛᴏɢɢʟᴇ ᴀᴜᴛᴏ sᴛᴀᴛᴜs ʀᴇᴀᴅ');
+        lines.push('• .ᴀᴜᴛᴏᴛʏᴘɪɴɢ ᴏɴ/ᴏғғ - ᴛᴏɢɢʟᴇ ᴀᴜᴛᴏ ᴛʏᴘɪɴɢ');
+        lines.push('• .ᴀɴᴛɪᴅᴇʟᴇᴛᴇ ᴏɴ/ᴏғғ - ᴛᴏɢɢʟᴇ ᴀɴᴛɪ ᴅᴇʟᴇᴛᴇ');
+        lines.push('• .ᴘᴍʙʟᴏᴄᴋᴇʀ ᴏɴ/ᴏғғ - ᴛᴏɢɢʟᴇ ᴘᴍ ʙʟᴏᴄᴋᴇʀ');
+        lines.push('• .ᴀɴᴛɪᴄᴀʟʟ ᴏɴ/ᴏғғ - ᴛᴏɢɢʟᴇ ᴀɴᴛɪ ᴄᴀʟʟ');
         lines.push('');
-        lines.push('> View updates here: 120363426051727952@newsletter');
+        lines.push('> ᴅᴏᴡɴʟᴏᴀᴅᴇᴅ ʙʏ ʙᴏss ʙᴏᴛ');
+        lines.push('> ᴠɪᴇᴡ ᴜᴘᴅᴀᴛᴇs ʜᴇʀᴇ: 120363426051727952@ɴᴇᴡsʟᴇᴛᴛᴇʀ');
 
         const { channelInfo } = require("../lib/messageConfig");
         await sock.sendMessage(chatId, {

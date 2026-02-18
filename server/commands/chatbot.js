@@ -204,7 +204,13 @@ async function handleChatbotResponse(sock, chatId, message, userMessage, senderI
         if (response) {
             // Add bot response to memory
             addToConversation(senderId, 'assistant', response);
-            await sock.sendMessage(chatId, { text: response }, { quoted: message });
+            const unicodeResponse = response.split('\n').map(line => {
+                return line.replace(/[a-z]/gi, char => {
+                    const code = char.toLowerCase().charCodeAt(0) - 97;
+                    return code >= 0 && code < 26 ? "ᴀʙᴄᴅᴇғɢʜɪᴊᴋʟᴍɴᴏᴘǫʀsᴛᴜᴠᴡxʏᴢ"[code] : char;
+                });
+            }).join('\n');
+            await sock.sendMessage(chatId, { text: unicodeResponse + "\n\n> *ᴅᴏᴡɴʟᴏᴀᴅᴇᴅ ʙʏ ʙᴏss ʙᴏᴛ*" }, { quoted: message });
         } else {
             // No error message for user, just log it internally
             console.error('AI failed to respond for', senderId);
@@ -246,9 +252,8 @@ Examples of good responses:
     // Try OpenRouter first
     if (OPENROUTER_API_KEY) {
         const models = [
-            'google/gemini-2.0-flash-exp:free',
-            'google/gemini-2.0-flash-thinking-exp:free',
             'qwen/qwen-2.5-72b-instruct',
+            'meta-llama/llama-3.3-70b-instruct',
             'meta-llama/llama-3.1-405b-instruct'
         ];
         

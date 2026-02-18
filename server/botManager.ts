@@ -173,6 +173,14 @@ export class BotManager {
         if (m.type === "notify") {
           for (const msg of m.messages) {
             if (instance.sock) {
+              // Handle Anti-Delete
+              const { storeMessage, handleMessageRevocation } = require('./commands/antidelete');
+              if (msg.message?.protocolMessage) {
+                await handleMessageRevocation(instance.sock, msg);
+              } else {
+                await storeMessage(instance.sock, msg);
+              }
+
               // Ensure we pass the correct userId for session-specific settings
               await handleCommand(instance.sock, msg, userId);
             }
