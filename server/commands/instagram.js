@@ -30,7 +30,7 @@ async function instagramCommand(sock, chatId, senderId, mentionedJids, message, 
             await sock.sendMessage(chatId, {
                 video: { url: filePath },
                 mimetype: "video/mp4",
-                caption: "ᴅᴏᴡɴʟᴏᴀᴅᴇᴅ ʙʏ ʙᴏss ʙᴏᴛ"
+                caption: "> *ᴅᴏᴡɴʟᴏᴀᴅᴇᴅ ʙʏ ʙᴏss ʙᴏᴛ*"
             }, { quoted: message });
 
             if (fs.existsSync(filePath)) fs.unlinkSync(filePath);

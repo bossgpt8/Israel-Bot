@@ -33,7 +33,7 @@ async function facebookCommand(sock, chatId, senderId, mentionedJids, message, a
             await sock.sendMessage(chatId, {
                 video: { url: finalPath },
                 mimetype: "video/mp4",
-                caption: "ᴅᴏᴡɴʟᴏᴀᴅᴇᴅ ʙʏ ʙᴏss ʙᴏᴛ"
+                caption: "> *ᴅᴏᴡɴʟᴏᴀᴅᴇᴅ ʙʏ ʙᴏss ʙᴏᴛ*"
             }, { quoted: message });
 
             if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
