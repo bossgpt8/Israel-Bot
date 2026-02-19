@@ -104,7 +104,8 @@ export async function handleCommand(sock: WASocket, msg: proto.IWebMessageInfo, 
   if (loadedCommands.has(commandName)) {
     try {
       const cmdFunc = loadedCommands.get(commandName);
-      await storage.addLog("info", `Executing ${commandName} for ${sender}`);
+      const botManager = (await import('./botManager')).botManager;
+      botManager['log'](userId || "default", "info", `Executing command: .${commandName} for ${sender}`);
       if (typeof cmdFunc === 'function') await cmdFunc(sock, remoteJid, sender, mentionedJids, msg, args, quotedParticipant);
     } catch (err) {
       console.error(`Error in ${commandName}:`, err);

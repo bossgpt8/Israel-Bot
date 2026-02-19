@@ -173,16 +173,20 @@ export class BotManager {
         if (m.type === "notify") {
           for (const msg of m.messages) {
             if (instance.sock) {
-              // Handle Anti-Delete
-              const { storeMessage, handleMessageRevocation } = require('./commands/antidelete');
-              if (msg.message?.protocolMessage) {
-                await handleMessageRevocation(instance.sock, msg);
-              } else {
-                await storeMessage(instance.sock, msg);
-              }
+              try {
+                // Handle Anti-Delete
+                const { storeMessage, handleMessageRevocation } = require('./commands/antidelete');
+                if (msg.message?.protocolMessage) {
+                  await handleMessageRevocation(instance.sock, msg);
+                } else {
+                  await storeMessage(instance.sock, msg);
+                }
 
-              // Ensure we pass the correct userId for session-specific settings
-              await handleCommand(instance.sock, msg, userId);
+                // Ensure we pass the correct userId for session-specific settings
+                await handleCommand(instance.sock, msg, userId);
+              } catch (cmdErr) {
+                this.log(userId, "error", `Command handling error: ${cmdErr}`);
+              }
             }
           }
         }
@@ -240,9 +244,16 @@ export class BotManager {
       listeners.forEach(listener => listener(logData));
     }
 
-    // Only persist user-specific critical info to Firestore if necessary, 
-    // but per requirements, we are removing Firestore bot event logging.
-    // If it's a critical registration event, we could use storage.updateUserSession
+    // Per user request: Save logs to storage for "normal" behavior
+    try {
+      if (userId === "default") {
+        await storage.addLog(level, message);
+      } else {
+        await storage.addUserLog(userId, level, message);
+      }
+    } catch (err) {
+      // Ignore storage errors for logs to prevent blocking
+    }
   }
 }
 

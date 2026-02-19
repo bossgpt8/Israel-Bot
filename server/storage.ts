@@ -58,18 +58,31 @@ export class FirestoreStorage implements IStorage {
 
   async addLog(level: string, message: string): Promise<Log> {
     const logData = { level, message, timestamp: new Date().toISOString() };
-    // Console only, no Firestore persistence for bot logs
-    console.log(`[BOT LOG] [${level.toUpperCase()}] ${message}`);
+    const docRef = collection(db, "logs");
+    try {
+      await addDoc(docRef, { ...logData, serverTimestamp: serverTimestamp() });
+    } catch (e) {
+      console.warn("Failed to save log to Firestore:", e);
+    }
     return logData as any;
   }
 
   async getLogs(lim = 50): Promise<Log[]> {
-    // Return empty as we don't persist logs to Firestore anymore
-    return [];
+    const q = query(collection(db, "logs"), orderBy("serverTimestamp", "desc"), limit(lim));
+    try {
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.map(doc => doc.data() as any);
+    } catch (e) {
+      return [];
+    }
   }
 
   async clearLogs(): Promise<void> {
-    // No-op
+    const q = query(collection(db, "logs"));
+    const querySnapshot = await getDocs(q);
+    for (const doc of querySnapshot.docs) {
+      await deleteDoc(doc.ref);
+    }
   }
 
   async createUserSession(session: InsertUserSession): Promise<UserSession> {
@@ -118,19 +131,41 @@ export class FirestoreStorage implements IStorage {
   }
 
   async addUserLog(userId: string, level: string, message: string): Promise<UserLog> {
-    const log = { userId, level, message, timestamp: new Date().toISOString() };
-    // Console only, no Firestore persistence for bot logs
-    console.log(`[USER LOG] [${userId}] [${level.toUpperCase()}] ${message}`);
-    return log as any;
+    const logData = { userId, level, message, timestamp: new Date().toISOString() };
+    const docRef = collection(db, "user_logs");
+    try {
+      await addDoc(docRef, { ...logData, serverTimestamp: serverTimestamp() });
+    } catch (e) {
+      console.warn(`Failed to save user log for ${userId} to Firestore:`, e);
+    }
+    return logData as any;
   }
 
   async getUserLogs(userId: string, lim = 50): Promise<UserLog[]> {
-    // Return empty as we don't persist logs to Firestore anymore
-    return [];
+    const q = query(
+      collection(db, "user_logs"), 
+      orderBy("serverTimestamp", "desc"), 
+      limit(lim)
+    );
+    try {
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs
+        .map(doc => doc.data() as any)
+        .filter((log: any) => log.userId === userId);
+    } catch (e) {
+      console.error("Error fetching user logs:", e);
+      return [];
+    }
   }
 
   async clearUserLogs(userId: string): Promise<void> {
-    // No-op
+    const q = query(collection(db, "user_logs"));
+    const querySnapshot = await getDocs(q);
+    for (const doc of querySnapshot.docs) {
+      if (doc.data().userId === userId) {
+        await deleteDoc(doc.ref);
+      }
+    }
   }
 }
 
