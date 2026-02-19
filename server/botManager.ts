@@ -238,22 +238,13 @@ export class BotManager {
     const logData = { level, message, timestamp: new Date().toISOString(), userId };
     console.log(`[${userId.toUpperCase()}] [${level.toUpperCase()}] ${message}`);
     
-    // Stream to memory listeners (SSE)
+    // Stream to memory listeners (SSE) for real-time dashboard updates
     const listeners = this.logListeners.get(userId);
     if (listeners) {
       listeners.forEach(listener => listener(logData));
     }
 
-    // Per user request: Save logs to storage for "normal" behavior
-    try {
-      if (userId === "default") {
-        await storage.addLog(level, message);
-      } else {
-        await storage.addUserLog(userId, level, message);
-      }
-    } catch (err) {
-      // Ignore storage errors for logs to prevent blocking
-    }
+    // Per user request: DO NOT save logs to Firestore to maintain speed
   }
 }
 
