@@ -1,4 +1,4 @@
-const settings = require("../settings.js");
+const { channelInfo } = require("../lib/messageConfig");
 
 async function pingCommand(
     sock,
@@ -10,21 +10,24 @@ async function pingCommand(
 ) {
     try {
         const start = Date.now();
+        
+        // Use a lightweight message to test latency
+        const { key } = await sock.sendMessage(chatId, { text: "Testing latency..." });
+        
         const end = Date.now();
         const ping = end - start;
 
         const botInfo = `🏓 *ᴘᴏɴɢ! ${ping} ᴍs*`;
 
-        const { channelInfo } = require("../lib/messageConfig");
-
         // Create a clean contextInfo without externalAdReply
         const cleanContextInfo = { ...channelInfo.contextInfo };
-        delete cleanContextInfo.externalAdReply; // Completely remove it
+        delete cleanContextInfo.externalAdReply;
 
         await sock.sendMessage(
             chatId,
             {
                 text: botInfo,
+                edit: key,
                 contextInfo: cleanContextInfo,
                 footer: channelInfo.footer,
             },
