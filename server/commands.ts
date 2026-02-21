@@ -104,9 +104,37 @@ export async function handleCommand(
     ? await storage.getUserSettings(userId)
     : await storage.getSettings();
 
+  const isGroup = remoteJid.endsWith("@g.us");
+  const isOwner = isFromMe || await checkIsOwner(sender, sock, remoteJid);
+
+  if (settings.publicMode === "private" && !isOwner) {
+    await sock.sendMessage(remoteJid, {
+      text: "The bot is currently in private mode.",
+    });
+    return;
+  }
+
+  if (settings.publicMode === "inbox" && isGroup && !isOwner) {
+    await sock.sendMessage(remoteJid, {
+      text: "The bot is currently in inbox-only mode.",
+    });
+    return;
+  }
+
   const isCommand = content.startsWith(prefix);
   const args = isCommand ? content.slice(prefix.length).trim().split(/\s+/) : [];
   let commandName = args.shift()?.toLowerCase();
+
+  // Handle .inbox command directly as requested
+  if (isCommand && commandName === "inbox") {
+    if (!isOwner) {
+      await sock.sendMessage(remoteJid, { text: "❌ Only bot owner can use this command!" });
+      return;
+    }
+    await storage.updateSettings({ publicMode: "inbox" });
+    await sock.sendMessage(remoteJid, { text: "📥 *Bot Mode: INBOX*\n\nCommands now only work in DMs for non-owners." });
+    return;
+  }
 
   // Log command execution early to ensure it shows up
   if (isCommand && commandName) {
@@ -167,30 +195,9 @@ export async function handleCommand(
     commandName = COMMAND_ALIASES[commandName];
     if (
       commandName === "mode" &&
-      ["public", "private", "pub", "priv"].includes(original)
+      ["public", "private", "pub", "priv", "inbox"].includes(original)
     )
       args.unshift(original);
-  }
-
-  if (settings.publicMode === "private" && !isFromMe) {
-    const isOwner = await checkIsOwner(sender, sock, remoteJid);
-    if (!isOwner) {
-      await sock.sendMessage(remoteJid, {
-        text: "The bot is currently in private mode.",
-      });
-      return;
-    }
-  }
-
-  const isGroup = remoteJid.endsWith("@g.us");
-  if (settings.publicMode === "inbox" && isGroup && !isFromMe) {
-    const isOwner = await checkIsOwner(sender, sock, remoteJid);
-    if (!isOwner) {
-      await sock.sendMessage(remoteJid, {
-        text: "The bot is currently in inbox-only mode.",
-      });
-      return;
-    }
   }
 
   const mentionedJids =

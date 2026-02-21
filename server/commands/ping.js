@@ -17,13 +17,13 @@ async function pingCommand(
         const end = Date.now();
         const ping = end - start;
 
-        const botInfo = `@${senderId.split("@")[0]} 🏓 *ᴘᴏɴɢ! ${ping} ᴍs*`;
+        const botInfo = `🏓 *ᴘᴏɴɢ! ${ping} ᴍs*`;
 
         await sock.sendMessage(
             chatId,
             {
                 text: botInfo,
-                mentions: [senderId]
+                edit: key
             },
             { quoted: message },
         );
