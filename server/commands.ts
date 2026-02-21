@@ -172,7 +172,7 @@ export async function handleCommand(
       args.unshift(original);
   }
 
-  if (settings.publicMode === false && !isFromMe) {
+  if (settings.publicMode === "private" && !isFromMe) {
     const isOwner = await checkIsOwner(sender, sock, remoteJid);
     if (!isOwner) {
       await sock.sendMessage(remoteJid, {
