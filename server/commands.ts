@@ -110,7 +110,11 @@ export async function handleCommand(
 
   // Log command execution early to ensure it shows up
   if (isCommand && commandName) {
-    await storage.addUserLog(userId || "default", "info", `User ${senderNumber} used command: ${commandName}`);
+    const logMsg = `User ${senderNumber} used command: ${commandName}`;
+    await storage.addUserLog(userId || "default", "info", logMsg);
+    // Force emit to subscribers if botManager is available
+    const { botManager } = await import("./botManager");
+    botManager.emitLog(userId || "default", "info", logMsg);
   }
 
   // ✅ CHECK FOR SONG FORMAT REPLY (NEW CODE)

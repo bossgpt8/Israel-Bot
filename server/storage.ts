@@ -1,5 +1,3 @@
-import { db } from "./firebase";
-import { collection, doc, getDoc, setDoc, updateDoc, query, limit, getDocs, orderBy, deleteDoc, addDoc, serverTimestamp } from "firebase/firestore";
 import {
   type BotSettings,
   type UpdateBotSettings,
@@ -30,95 +28,80 @@ export interface IStorage {
 }
 
 const inMemoryLogs = new Map<string, UserLog[]>();
-const MAX_LOGS_PER_USER = 100;
+const MAX_LOGS_PER_USER = 500;
 
-export class FirestoreStorage implements IStorage {
+const defaultSettings = { 
+  id: 1, 
+  botName: "Boss", 
+  ownerNumber: "2349164898577", 
+  publicMode: true, 
+  autoRead: false, 
+  welcomeEnabled: false, 
+  goodbyeEnabled: false, 
+  autoStatusRead: false, 
+  autoTyping: false 
+};
+
+let globalSettings = { ...defaultSettings };
+const userSettingsStore = new Map<string, UserSettings>();
+const userSessionsStore = new Map<string, UserSession>();
+
+export class MemStorage implements IStorage {
   async getSettings(): Promise<BotSettings> {
-    const docRef = doc(db, "bot_settings", "global");
-    try {
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        return docSnap.data() as any;
-      }
-      const defaultSettings = { id: 1, botName: "Boss", ownerNumber: "2349164898577", publicMode: true, autoRead: false, welcomeEnabled: false, goodbyeEnabled: false, autoStatusRead: false, autoTyping: false };
-      await setDoc(docRef, defaultSettings);
-      return defaultSettings as any;
-    } catch (error) {
-      console.warn("Firestore offline or error, using defaults:", error);
-      return { id: 1, botName: "Boss", ownerNumber: "2349164898577", publicMode: true, autoRead: false, welcomeEnabled: false, goodbyeEnabled: false, autoStatusRead: false, autoTyping: false } as any;
-    }
+    return globalSettings as any;
   }
 
   async updateSettings(updates: UpdateBotSettings): Promise<BotSettings> {
-    const docRef = doc(db, "bot_settings", "global");
-    try {
-      await updateDoc(docRef, { ...updates, updatedAt: serverTimestamp() });
-    } catch (e) {
-      console.warn("Failed to update settings in Firestore:", e);
-    }
-    return this.getSettings();
+    globalSettings = { ...globalSettings, ...updates };
+    return globalSettings as any;
   }
 
   async addLog(level: string, message: string): Promise<Log> {
     const logData = { level, message, timestamp: new Date() };
-    console.log(`[BOT LOG] [${level.toUpperCase()}] ${message}`);
-    // Also add to default user logs so it shows in dashboard
     await this.addUserLog("default", level, message);
     return logData as any;
   }
 
   async getLogs(lim = 50): Promise<Log[]> {
-    // Return empty as we don't persist logs to Firestore anymore
     return [];
   }
 
   async clearLogs(): Promise<void> {
-    // No-op
+    inMemoryLogs.clear();
   }
 
   async createUserSession(session: InsertUserSession): Promise<UserSession> {
-    await setDoc(doc(db, "user_sessions", session.userId), { ...session, createdAt: serverTimestamp() });
+    userSessionsStore.set(session.userId, session as any);
     return session as any;
   }
 
   async getUserSession(userId: string): Promise<UserSession | null> {
-    const docSnap = await getDoc(doc(db, "user_sessions", userId));
-    return docSnap.exists() ? docSnap.data() as any : null;
+    return userSessionsStore.get(userId) || null;
   }
 
   async updateUserSession(userId: string, updates: UpdateUserSession): Promise<UserSession> {
-    await updateDoc(doc(db, "user_sessions", userId), { ...updates, updatedAt: serverTimestamp() });
-    return this.getUserSession(userId) as any;
+    const session = userSessionsStore.get(userId) || { userId } as any;
+    const updated = { ...session, ...updates };
+    userSessionsStore.set(userId, updated);
+    return updated;
   }
 
   async deleteUserSession(userId: string): Promise<void> {
-    await deleteDoc(doc(db, "user_sessions", userId));
+    userSessionsStore.delete(userId);
   }
 
   async getUserSettings(userId: string): Promise<UserSettings> {
-    const docRef = doc(db, "user_settings", userId);
-    try {
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        return docSnap.data() as any;
-      }
-      const defaultSet = { userId, botName: "Boss", publicMode: true };
-      await setDoc(docRef, defaultSet);
-      return defaultSet as any;
-    } catch (error) {
-      console.warn(`Firestore offline for user ${userId}, using defaults:`, error);
-      return { userId, botName: "Boss", publicMode: true } as any;
+    if (!userSettingsStore.has(userId)) {
+      userSettingsStore.set(userId, { userId, botName: "Boss", publicMode: true } as any);
     }
+    return userSettingsStore.get(userId)!;
   }
 
   async updateUserSettings(userId: string, updates: UpdateUserSettings): Promise<UserSettings> {
-    const docRef = doc(db, "user_settings", userId);
-    try {
-      await updateDoc(docRef, { ...updates, updatedAt: serverTimestamp() });
-    } catch (e) {
-      console.warn(`Failed to update user settings for ${userId}:`, e);
-    }
-    return this.getUserSettings(userId);
+    const current = await this.getUserSettings(userId);
+    const updated = { ...current, ...updates };
+    userSettingsStore.set(userId, updated);
+    return updated;
   }
 
   async addUserLog(userId: string, level: string, message: string): Promise<UserLog> {
@@ -132,16 +115,14 @@ export class FirestoreStorage implements IStorage {
     const logs = inMemoryLogs.get(userId)!;
     logs.push(log);
     
-    // Keep only the last MAX_LOGS_PER_USER logs
     if (logs.length > MAX_LOGS_PER_USER) {
       logs.shift();
     }
     
-    console.log(`[USER LOG] [${userId}] [${level.toUpperCase()}] ${message}`);
     return log;
   }
 
-  async getUserLogs(userId: string, lim = 50): Promise<UserLog[]> {
+  async getUserLogs(userId: string, lim = 100): Promise<UserLog[]> {
     const logs = inMemoryLogs.get(userId) || [];
     return logs.slice(-lim).reverse();
   }
@@ -151,4 +132,4 @@ export class FirestoreStorage implements IStorage {
   }
 }
 
-export const storage = new FirestoreStorage();
+export const storage = new MemStorage();

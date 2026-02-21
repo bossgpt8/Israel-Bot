@@ -19,17 +19,11 @@ async function pingCommand(
 
         const botInfo = `🏓 *ᴘᴏɴɢ! ${ping} ᴍs*`;
 
-        // Create a clean contextInfo without externalAdReply
-        const cleanContextInfo = { ...channelInfo.contextInfo };
-        delete cleanContextInfo.externalAdReply;
-
         await sock.sendMessage(
             chatId,
             {
                 text: botInfo,
                 edit: key,
-                contextInfo: cleanContextInfo,
-                footer: channelInfo.footer,
                 mentions: [senderId]
             },
             { quoted: message },
