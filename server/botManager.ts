@@ -226,15 +226,14 @@ export class BotManager {
     const logData = { level, message, timestamp: new Date().toISOString(), userId };
     console.log(`[${userId.toUpperCase()}] [${level.toUpperCase()}] ${message}`);
     
+    // Store in memory via storage
+    await storage.addUserLog(userId, level, message);
+    
     // Stream to memory listeners (SSE)
     const listeners = this.logListeners.get(userId);
     if (listeners) {
       listeners.forEach(listener => listener(logData));
     }
-
-    // Only persist user-specific critical info to Firestore if necessary, 
-    // but per requirements, we are removing Firestore bot event logging.
-    // If it's a critical registration event, we could use storage.updateUserSession
   }
 }
 

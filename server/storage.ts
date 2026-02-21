@@ -29,6 +29,9 @@ export interface IStorage {
   clearUserLogs(userId: string): Promise<void>;
 }
 
+const inMemoryLogs = new Map<string, UserLog[]>();
+const MAX_LOGS_PER_USER = 100;
+
 export class FirestoreStorage implements IStorage {
   async getSettings(): Promise<BotSettings> {
     const docRef = doc(db, "bot_settings", "global");
@@ -118,19 +121,32 @@ export class FirestoreStorage implements IStorage {
   }
 
   async addUserLog(userId: string, level: string, message: string): Promise<UserLog> {
-    const log = { userId, level, message, timestamp: new Date().toISOString() };
-    // Console only, no Firestore persistence for bot logs
+    const id = Math.floor(Math.random() * 1000000);
+    const log: UserLog = { id, userId, level, message, timestamp: new Date() };
+    
+    if (!inMemoryLogs.has(userId)) {
+      inMemoryLogs.set(userId, []);
+    }
+    
+    const logs = inMemoryLogs.get(userId)!;
+    logs.push(log);
+    
+    // Keep only the last MAX_LOGS_PER_USER logs
+    if (logs.length > MAX_LOGS_PER_USER) {
+      logs.shift();
+    }
+    
     console.log(`[USER LOG] [${userId}] [${level.toUpperCase()}] ${message}`);
-    return log as any;
+    return log;
   }
 
   async getUserLogs(userId: string, lim = 50): Promise<UserLog[]> {
-    // Return empty as we don't persist logs to Firestore anymore
-    return [];
+    const logs = inMemoryLogs.get(userId) || [];
+    return logs.slice(-lim).reverse();
   }
 
   async clearUserLogs(userId: string): Promise<void> {
-    // No-op
+    inMemoryLogs.set(userId, []);
   }
 }
 

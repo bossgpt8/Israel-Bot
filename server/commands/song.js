@@ -58,11 +58,11 @@ async function songCommand(
 • *ᴀᴜᴛʜᴏʀ   : ${author}*
 • *sᴛᴀᴛᴜs   : ᴅᴏᴡɴʟᴏᴀᴅɪɴɢ...*
 
-✦━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━✦
+✦━━━━━━━━━━━━━━━━━━━━━━━━━━━━✦
 *ʀᴇᴘʟʏ ᴡɪᴛʜ ɴᴜᴍʙᴇʀ:*
 1️⃣ 🎧 *ᴀᴜᴅɪᴏ* (ɴᴏʀᴍᴀʟ - ᴘʟᴀʏs ɪɴ ᴄʜᴀᴛ)
 2️⃣ 📁 *ᴅᴏᴄᴜᴍᴇɴᴛ* (ғɪʟᴇ - sᴇɴᴅs ᴀs ᴀᴛᴛᴀᴄʜᴍᴇɴᴛ)
-✦━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━✦
+✦━━━━━━━━━━━━━━━━━━━━━━━━━━━━✦
 *© Pᴏᴡᴇʀᴇᴅ Bʏ Bᴏss Bᴏᴛ*`;
 
             // ✅ Store pending download info
@@ -96,7 +96,9 @@ async function songCommand(
                         { quoted: message },
                     );
                     if (fs.existsSync(data.filePath))
-                        try { fs.unlinkSync(data.filePath); } catch(e) {}
+                        try {
+                            fs.unlinkSync(data.filePath);
+                        } catch (e) {}
                 }
                 pendingDownloads.delete(key);
             }, 120000);
@@ -174,7 +176,10 @@ async function handleSongReply(sock, chatId, senderId, message, replyText) {
         if (pendingData.timeoutId) clearTimeout(pendingData.timeoutId);
         pendingDownloads.delete(key);
         setTimeout(() => {
-            if (fs.existsSync(filePath)) try { fs.unlinkSync(filePath); } catch(e) {}
+            if (fs.existsSync(filePath))
+                try {
+                    fs.unlinkSync(filePath);
+                } catch (e) {}
         }, 5000);
 
         return true;
