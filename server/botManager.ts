@@ -73,10 +73,10 @@ export class BotManager {
         this.log(userId, "info", "Session found. Connecting...");
       } else {
         this.log(userId, "info", "No session found. Please link bot.");
-        if (forceNewSession) {
-          await fs.remove(userAuthDir);
-          await fs.ensureDir(userAuthDir);
-        }
+        instance.status = "offline";
+        instance.qr = null;
+        instance.pairingCode = null;
+        return;
       }
 
       const { state, saveCreds } = await useMultiFileAuthState(userAuthDir);
