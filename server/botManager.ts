@@ -54,7 +54,7 @@ export class BotManager {
     };
   }
 
-  public async start(phoneNumber?: string, forceNewSession: boolean = true, userId: string = "default") {
+  public async start(phoneNumber?: string, forceNewSession: boolean = false, userId: string = "default") {
     const instance = this.getInstance(userId);
     if (instance.status === "online" || instance.status === "starting") return;
     
@@ -64,27 +64,20 @@ export class BotManager {
     
     try {
       const userAuthDir = userId === "default" ? this.authDir : path.join(this.authDir, userId);
-      let sessionExists = false;
-
-      // Always try to download session first if not forcing a new one
-      if (!forceNewSession) {
-        sessionExists = await downloadSession(userId, this.authDir);
-      } else {
-        // Even if forceNewSession is true, if we have a local creds.json, it might be a reboot
-        sessionExists = await fs.pathExists(path.join(userAuthDir, 'creds.json'));
-      }
+      await fs.ensureDir(userAuthDir);
+      
+      const credsPath = path.join(userAuthDir, 'creds.json');
+      const sessionExists = await fs.pathExists(credsPath);
 
       if (sessionExists) {
-        this.log(userId, "info", "Session found");
-        this.log(userId, "info", "Establishing connection...");
+        this.log(userId, "info", "Session found. Connecting...");
       } else {
         this.log(userId, "info", "No session found. Please link bot.");
         if (forceNewSession) {
           await fs.remove(userAuthDir);
+          await fs.ensureDir(userAuthDir);
         }
       }
-
-      await fs.ensureDir(userAuthDir);
 
       const { state, saveCreds } = await useMultiFileAuthState(userAuthDir);
       const { version } = await fetchLatestBaileysVersion();
@@ -145,8 +138,14 @@ export class BotManager {
         instance.pairingCode = null;
 
         if (shouldReconnect) {
-          this.log(userId, "info", "Auto-reconnecting...");
-          setTimeout(() => this.start(undefined, false, userId), 5000);
+          instance.reconnectAttempts++;
+          if (instance.reconnectAttempts < this.maxReconnectAttempts) {
+            this.log(userId, "info", `Auto-reconnecting (Attempt ${instance.reconnectAttempts})...`);
+            setTimeout(() => this.start(undefined, false, userId), 5000);
+          } else {
+            this.log(userId, "error", "Max reconnection attempts reached. Please restart manually.");
+            instance.status = "error";
+          }
         } else if (statusCode === DisconnectReason.loggedOut) {
           await fs.remove(userAuthDir);
           instance.sock = null;
@@ -185,6 +184,9 @@ export class BotManager {
     } catch (err: any) {
       this.log(userId, "error", `Failed to start bot: ${err.message}`);
       instance.status = "error";
+      instance.sock = null;
+      instance.qr = null;
+      instance.pairingCode = null;
     }
   }
 
