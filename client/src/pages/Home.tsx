@@ -24,7 +24,6 @@ export default function Home() {
   const botStatus = status?.status || "offline";
   const isOnline = botStatus === "online";
   const isStarting = botStatus === "starting";
-  const isError = botStatus === "error";
   const linkedNumber = (status as any)?.linkedWhatsAppNumber || (status as any)?.ownerNumber;
 
   return (
@@ -87,19 +86,12 @@ export default function Home() {
               </div>
             )}
 
-            {(isError || (!isOnline && !isStarting)) && (
+            {!isOnline && !isStarting && (
               <div className="cyber-card p-6 border-primary/20 bg-primary/5">
                 <h3 className="text-xl mb-6 text-primary flex items-center gap-2 font-display font-bold">
                   <Smartphone className="w-5 h-5" /> 
-                  {isError ? "CONNECTION ERROR" : "LINK YOUR DEVICE"}
+                  LINK YOUR DEVICE
                 </h3>
-                {isError && (
-                  <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 mb-6">
-                    <p className="text-red-500 text-xs font-bold uppercase tracking-tight">
-                      Error linking bot to WhatsApp. Please pair again.
-                    </p>
-                  </div>
-                )}
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                   <TabsList className="grid w-full grid-cols-1 bg-black/20 border border-white/5 p-1 rounded-xl">
                     <TabsTrigger value="pairing" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white uppercase tracking-widest font-bold">Pairing Code</TabsTrigger>

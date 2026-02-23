@@ -1,5 +1,3 @@
-const { channelInfo } = require("../lib/messageConfig");
-
 async function pingCommand(
     sock,
     chatId,
@@ -10,21 +8,22 @@ async function pingCommand(
 ) {
     try {
         const start = Date.now();
-        const end = Date.now();
-        const ping = end - start;
 
-        const botInfo = `🏓 ᴘᴏɴɢ! ${ping} ᴍs`;
+        // Send a tiny test message (not edited)
+        await sock.sendMessage(chatId, { text: "‎" }); // invisible char
+
+        const ping = Date.now() - start;
 
         await sock.sendMessage(
             chatId,
-            { text: botInfo },
-            { quoted: message }, // 👈 THIS MAKES IT A REPLY
+            { text: `🏓 *ᴘᴏɴɢ! ${ping} ᴍs*` },
+            { quoted: message },
         );
-    } catch (error) {
-        console.error("Error in ping command:", error);
+    } catch (e) {
+        console.error(e);
         await sock.sendMessage(
             chatId,
-            { text: "❌ Failed to get ping: " + error.message },
+            { text: "Ping failed" },
             { quoted: message },
         );
     }

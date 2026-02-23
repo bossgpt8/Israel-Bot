@@ -105,34 +105,43 @@ export async function handleCommand(
     : await storage.getSettings();
 
   const isGroup = remoteJid.endsWith("@g.us");
-  const isOwner = isFromMe || await checkIsOwner(sender, sock, remoteJid);
-
-  if (settings.publicMode === "private" && !isOwner) {
-    await sock.sendMessage(remoteJid, {
-      text: "The bot is currently in private mode.",
-    });
-    return;
-  }
-
-  if (settings.publicMode === "inbox" && isGroup && !isOwner) {
-    await sock.sendMessage(remoteJid, {
-      text: "The bot is currently in inbox-only mode.",
-    });
-    return;
-  }
+  const isOwner = isFromMe || (await checkIsOwner(sender, sock, remoteJid));
 
   const isCommand = content.startsWith(prefix);
+  const mode = settings.publicMode || "public";
+
+  // PRIVATE MODE: Only owner can execute
+  if (mode === "private" && !isOwner) {
+    if (isCommand) {
+      await sock.sendMessage(remoteJid, {
+        text: "🤖 Bot is in private mode",
+      });
+      return; // STOP command execution
+    }
+  }
+
+  // INBOX MODE: Only work in DMs, groups are ignored
+  if (mode === "inbox") {
+    if (isGroup && isCommand && !isOwner) {
+      return; // STOP command execution silently
+    }
+  }
+
   const args = isCommand ? content.slice(prefix.length).trim().split(/\s+/) : [];
   let commandName = args.shift()?.toLowerCase();
 
   // Handle .inbox command directly as requested
   if (isCommand && commandName === "inbox") {
     if (!isOwner) {
-      await sock.sendMessage(remoteJid, { text: "❌ Only bot owner can use this command!" });
+      await sock.sendMessage(remoteJid, {
+        text: "❌ Only bot owner can use this command!",
+      });
       return;
     }
     await storage.updateSettings({ publicMode: "inbox" });
-    await sock.sendMessage(remoteJid, { text: "📥 *Bot Mode: INBOX*\n\nCommands now only work in DMs for non-owners." });
+    await sock.sendMessage(remoteJid, {
+      text: "📥 *Bot Mode: INBOX*\n\nCommands now only work in DMs for non-owners.",
+    });
     return;
   }
 
@@ -209,7 +218,11 @@ export async function handleCommand(
     try {
       const startTime = Date.now();
       const cmdFunc = loadedCommands.get(commandName);
-      await storage.addUserLog(userId || "default", "info", `Executing ${commandName} for ${senderNumber}`);
+      await storage.addUserLog(
+        userId || "default",
+        "info",
+        `Executing ${commandName} for ${senderNumber}`,
+      );
       if (typeof cmdFunc === "function") {
         await cmdFunc(
           sock,
