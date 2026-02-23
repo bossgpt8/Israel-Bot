@@ -33,7 +33,7 @@ async function modeCommand(sock, chatId, senderId, mentionedJids, message, args,
             }
 
             await sock.sendMessage(chatId, {
-                text: '🤖 Bot is in private mode'
+                text: '🔒 *Bot Mode: PRIVATE*\n\nOnly owner and sudo users can use the bot.'
             }, { quoted: message });
 
         } else if (option === 'inbox') {

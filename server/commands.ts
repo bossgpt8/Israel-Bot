@@ -110,14 +110,12 @@ export async function handleCommand(
   const isCommand = content.startsWith(prefix);
   const mode = settings.publicMode || "public";
 
-  console.log(`[DEBUG] Mode: ${mode}, isOwner: ${isOwner}, isGroup: ${isGroup}, sender: ${sender}`);
-
   // PRIVATE MODE: Only owner can execute
-  if (mode === "private") {
-    if (isCommand && !isOwner) {
+  if (mode === "private" && !isOwner) {
+    if (isCommand) {
       await sock.sendMessage(remoteJid, {
         text: "🤖 Bot is in private mode",
-      }, { quoted: msg });
+      });
       return; // STOP command execution
     }
   }
@@ -136,14 +134,14 @@ export async function handleCommand(
   if (isCommand && commandName === "inbox") {
     if (!isOwner) {
       await sock.sendMessage(remoteJid, {
-        text: "🤖 Bot is in private mode",
-      }, { quoted: msg });
+        text: "❌ Only bot owner can use this command!",
+      });
       return;
     }
     await storage.updateSettings({ publicMode: "inbox" });
     await sock.sendMessage(remoteJid, {
       text: "📥 *Bot Mode: INBOX*\n\nCommands now only work in DMs for non-owners.",
-    }, { quoted: msg });
+    });
     return;
   }
 
