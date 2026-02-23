@@ -6,7 +6,7 @@ async function isOwnerOrSudo(senderId, sock = null, chatId = null) {
     const ownerNumberClean = settings.ownerNumber.split(':')[0].split('@')[0];
     
     // Direct JID match
-    if (senderId === ownerJid) {
+    if (senderId === ownerJid || senderId.startsWith(ownerNumberClean + '@')) {
         return true;
     }
     
