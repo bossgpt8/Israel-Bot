@@ -34,7 +34,10 @@ const COMMAND_ALIASES: Record<string, string> = {
   vid: "video",
   mp4: "video",
   yt: "play",
-  music: "play",
+  music: "song",
+  fb: "facebook",
+  ig: "instagram",
+  tt: "tiktok",
   unlink: "logout",
   logoutbot: "logout",
 };
@@ -105,12 +108,17 @@ export async function handleCommand(
     : await storage.getSettings();
 
   const isGroup = remoteJid.endsWith("@g.us");
-  const isOwner = isFromMe || (await checkIsOwner(sender, sock, remoteJid));
+  const ownerNumber = settings.ownerNumber || "2349164898577";
+  const senderNumberOnly = sender.split("@")[0].split(":")[0];
+  const isOwner =
+    isFromMe ||
+    senderNumberOnly === ownerNumber ||
+    (await checkIsOwner(sender, sock, remoteJid));
 
   const isCommand = content.startsWith(prefix);
   const mode = settings.publicMode || "public";
 
-  // PRIVATE MODE: Only owner can execute
+  // 1. PRIVATE MODE: Only owner can execute
   if (mode === "private" && !isOwner) {
     if (isCommand) {
       await sock.sendMessage(remoteJid, {
@@ -120,14 +128,18 @@ export async function handleCommand(
     }
   }
 
-  // INBOX MODE: Only work in DMs, groups are ignored
+  // 2. INBOX MODE: Only work in DMs (not in groups)
   if (mode === "inbox") {
     if (isGroup && isCommand && !isOwner) {
       return; // STOP command execution silently
     }
   }
 
-  const args = isCommand ? content.slice(prefix.length).trim().split(/\s+/) : [];
+  // 3. PUBLIC MODE: Responds to everyone everywhere (Default behavior)
+
+  const args = isCommand
+    ? content.slice(prefix.length).trim().split(/\s+/)
+    : [];
   let commandName = args.shift()?.toLowerCase();
 
   // Handle .inbox command directly as requested
