@@ -1,7 +1,7 @@
 modules = ["nodejs-22", "postgresql-16"]
 [nix]
 channel = "stable-25_05"
-packages = ["unzip", "yt-dlp"]
+packages = ["unzip", "yt-dlp", "tree"]
 
 [agent]
 expertMode = true
