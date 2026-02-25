@@ -8,10 +8,10 @@ import { nanoid } from "nanoid";
 
 const viteLogger = createLogger();
 
-export async function setupVite(server: Server, app: Express) {
+export async function setupVite(server: Server | null, app: Express) {
   const serverOptions = {
     middlewareMode: true,
-    hmr: { server, path: "/vite-hmr" },
+    ...(server ? { hmr: { server, path: "/vite-hmr" } } : {}),
     allowedHosts: true as const,
   };
 

@@ -2,8 +2,8 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
-import { botManager } from "./botManager";
-
+import { bossBotClient } from "./bossBotClient";
+import { setupVite, serveStatic, log } from "./vite";
 import cors from "cors";
 
 export async function registerRoutes(
@@ -15,35 +15,32 @@ export async function registerRoutes(
   // Bot Status
   app.get(api.bot.status.path, async (req, res) => {
     const userId = (req.query.userId as string) || "default";
-    const status = await botManager.getStatus(userId);
-    res.json(status);
+    try {
+      const status = await bossBotClient.getStatus(userId);
+      res.json(status);
+    } catch (err: any) {
+      res.json({ connected: false, status: "disconnected", error: err.message });
+    }
   });
 
   // Bot Actions
   app.post(api.bot.action.path, async (req, res) => {
-    const { action, phoneNumber, userId, forceNewSession } = req.body;
+    const { action, phoneNumber, userId } = req.body;
     try {
       switch (action) {
         case "start":
-          // Start the bot process - logs will be handled internally with delays
-          botManager.start(phoneNumber, forceNewSession !== undefined ? forceNewSession : true, userId);
-          res.json({ 
-            success: true, 
-            message: "System sequence started..." 
-          });
+          // For QR linking
+          const qrData = await bossBotClient.linkQR(userId || "default");
+          res.json({ success: true, qr: qrData.qr });
+          break;
+        case "link-code":
+          const codeData = await bossBotClient.linkCode(userId || "default", phoneNumber);
+          res.json({ success: true, code: codeData.code });
           break;
         case "stop":
-          await botManager.stop();
-          res.json({ success: true, message: "Bot stopped." });
-          break;
-        case "restart":
-          await botManager.stop();
-          await botManager.start(phoneNumber, true, userId);
-          res.json({ success: true, message: "Bot restarting..." });
-          break;
         case "logout":
-          await botManager.logout();
-          res.json({ success: true, message: "Bot logged out." });
+          await bossBotClient.disconnect(userId || "default");
+          res.json({ success: true, message: "Bot disconnected." });
           break;
         default:
           res.status(400).json({ message: "Invalid action" });
@@ -53,21 +50,15 @@ export async function registerRoutes(
     }
   });
 
-  // Logs SSE Stream
-  app.get("/api/bot/logs/stream", (req, res) => {
-    const userId = (req.query.userId as string) || "default";
-    res.setHeader("Content-Type", "text/event-stream");
-    res.setHeader("Cache-Control", "no-cache");
-    res.setHeader("Connection", "keep-alive");
-    res.flushHeaders();
-
-    const unsubscribe = botManager.subscribeLogs(userId, (log) => {
-      res.write(`data: ${JSON.stringify(log)}\n\n`);
-    });
-
-    req.on("close", () => {
-      unsubscribe();
-    });
+  // Send Message
+  app.post("/api/bot/send", async (req, res) => {
+    const { userId, to, message } = req.body;
+    try {
+      const result = await bossBotClient.sendMessage(userId || "default", to, message);
+      res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
   });
 
   // Logs (Legacy endpoint - returns from in-memory)
