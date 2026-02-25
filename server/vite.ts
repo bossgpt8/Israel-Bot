@@ -1,4 +1,4 @@
-import { type Express } from "express";
+import { type Express, static as expressStatic } from "express";
 import { createServer as createViteServer, createLogger } from "vite";
 import { type Server } from "http";
 import viteConfig from "../vite.config";
@@ -8,10 +8,15 @@ import { nanoid } from "nanoid";
 
 const viteLogger = createLogger();
 
-export async function setupVite(server: Server | null, app: Express) {
+export function log(message: string, source = "express") {
+  const formatted = `${new Date().toLocaleTimeString()} [${source}] ${message}`;
+  console.log(formatted);
+}
+
+export async function setupVite(server: Server, app: Express) {
   const serverOptions = {
     middlewareMode: true,
-    ...(server ? { hmr: { server, path: "/vite-hmr" } } : {}),
+    hmr: { server, path: "/vite-hmr" },
     allowedHosts: true as const,
   };
 
@@ -31,7 +36,7 @@ export async function setupVite(server: Server | null, app: Express) {
 
   app.use(vite.middlewares);
 
-  app.use("/{*path}", async (req, res, next) => {
+  app.use("*", async (req, res, next) => {
     const url = req.originalUrl;
 
     try {
@@ -42,7 +47,6 @@ export async function setupVite(server: Server | null, app: Express) {
         "index.html",
       );
 
-      // always reload the index.html file from disk incase it changes
       let template = await fs.promises.readFile(clientTemplate, "utf-8");
       template = template.replace(
         `src="/src/main.tsx"`,
@@ -54,5 +58,21 @@ export async function setupVite(server: Server | null, app: Express) {
       vite.ssrFixStacktrace(e as Error);
       next(e);
     }
+  });
+}
+
+export function serveStatic(app: Express) {
+  const distPath = path.resolve(import.meta.dirname, "..", "dist", "public");
+
+  if (!fs.existsSync(distPath)) {
+    throw new Error(
+      `Could not find the build directory: ${distPath}. Make sure to build the client first.`,
+    );
+  }
+
+  app.use(expressStatic(distPath));
+
+  app.use("*", (_req, res) => {
+    res.sendFile(path.resolve(distPath, "index.html"));
   });
 }
