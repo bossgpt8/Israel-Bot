@@ -157,7 +157,6 @@ export function StatusCard({ status, qr, pairingCode, uptime, linkedNumber }: St
       </div>
     </div>
   );
-  );
 }
 
 // Add CSS keyframes for scan effect if not already present
