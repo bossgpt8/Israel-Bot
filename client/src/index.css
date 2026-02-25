@@ -15,8 +15,8 @@
   --input: 240 10% 20%;
   --ring: 262 83% 58%;
   --radius: 0.75rem;
-  --font-display: 'Orbitron', sans-serif;
-  --font-body: 'Rajdhani', sans-serif;
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-body: 'Sora', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 }
 
@@ -26,12 +26,12 @@
 
 @layer base {
   @font-face {
-    font-family: 'Orbitron';
-    src: url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&display=swap');
+    font-family: 'Space Grotesk';
+    src: url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
   }
   @font-face {
-    font-family: 'Rajdhani';
-    src: url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&display=swap');
+    font-family: 'Sora';
+    src: url('https://fonts.googleapis.com/css2?family=Sora:wght@100;200;300;400;500;600;700;800&display=swap');
   }
   @font-face {
     font-family: 'JetBrains Mono';
@@ -39,20 +39,22 @@
   }
 
   *, ::before, ::after {
-    border-color: hsl(var(--border));
+    border-color: hsl(var(--border) / 0.1);
   }
 
   html, body {
     height: 100%;
     margin: 0;
     padding: 0;
-    background-color: #0b0c10 !important;
+    background-color: #020205 !important;
+    scroll-behavior: smooth;
   }
 
   body {
-    color: white !important;
+    color: #e5e7eb !important;
     font-family: var(--font-body);
-    background: radial-gradient(circle at 50% 0%, rgba(147, 51, 234, 0.25) 0%, #0b0c10 70%) !important;
+    background: radial-gradient(circle at 50% -20%, rgba(124, 58, 237, 0.15) 0%, transparent 70%), 
+                radial-gradient(circle at 0% 100%, rgba(59, 130, 246, 0.05) 0%, transparent 50%) !important;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     min-height: 100vh;
