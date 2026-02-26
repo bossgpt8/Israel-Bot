@@ -24,7 +24,11 @@
     },
     {
       "src": "/(.*)",
-      "dest": "/index.html"
+      "dest": "/index.html",
+      "check": true
     }
-  ]
+  ],
+  "env": {
+    "NODE_OPTIONS": "--import tsx"
+  }
 }
