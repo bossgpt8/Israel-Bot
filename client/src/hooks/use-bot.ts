@@ -11,10 +11,18 @@ export function useBotStatus() {
   return useQuery({
     queryKey: [api.bot.status.path],
     queryFn: async () => {
-      const res = await fetch(api.bot.status.path);
-      if (!res.ok) throw new Error("Failed to fetch status");
-      const data = await res.json();
-      return api.bot.status.responses[200].parse(data);
+      try {
+        const res = await fetch(api.bot.status.path);
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(text || "Failed to fetch status");
+        }
+        const data = await res.json();
+        return api.bot.status.responses[200].parse(data);
+      } catch (err: any) {
+        console.error("Status fetch error:", err);
+        throw err;
+      }
     },
     refetchInterval: 5000, 
   });
@@ -37,10 +45,22 @@ export function useBotAction() {
       });
       
       if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Action failed");
+        const text = await res.text();
+        let errorMessage = "Action failed";
+        try {
+          const error = JSON.parse(text);
+          errorMessage = error.message || errorMessage;
+        } catch (e) {
+          errorMessage = text || errorMessage;
+        }
+        throw new Error(errorMessage);
       }
-      return api.bot.action.responses[200].parse(await res.json());
+      const text = await res.text();
+      try {
+        return api.bot.action.responses[200].parse(JSON.parse(text));
+      } catch (e) {
+        throw new Error("Invalid server response");
+      }
     },
     onSuccess: (data) => {
       toast({

@@ -27,6 +27,10 @@ export async function registerRoutes(
   app.post(api.bot.action.path, async (req, res) => {
     const { action, phoneNumber, userId } = req.body;
     try {
+      if (!action) {
+        return res.status(400).json({ message: "Action is required" });
+      }
+
       switch (action) {
         case "start":
           // For QR linking
@@ -34,6 +38,9 @@ export async function registerRoutes(
           res.json({ success: true, qr: qrData.qr });
           break;
         case "link-code":
+          if (!phoneNumber) {
+            return res.status(400).json({ message: "Phone number is required for pairing code" });
+          }
           const codeData = await bossBotClient.linkCode(userId || "default", phoneNumber);
           res.json({ success: true, code: codeData.code });
           break;
@@ -43,10 +50,11 @@ export async function registerRoutes(
           res.json({ success: true, message: "Bot disconnected." });
           break;
         default:
-          res.status(400).json({ message: "Invalid action" });
+          res.status(400).json({ message: `Invalid action: ${action}` });
       }
     } catch (err: any) {
-      res.status(500).json({ message: err.message });
+      log(`Action error: ${err.message}`, "error");
+      res.status(500).json({ message: err.message || "An unexpected error occurred" });
     }
   });
 

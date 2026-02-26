@@ -10,28 +10,64 @@ export class BossBotClient {
   }
 
   async linkQR(userId: string) {
-    const response = await axios.post(`${this.baseUrl}/link/qr`, { userId });
-    return response.data;
+    try {
+      const response = await axios.post(`${this.baseUrl}/link/qr`, { userId });
+      return response.data;
+    } catch (err: any) {
+      if (err.response?.data) {
+        throw new Error(err.response.data.message || "Failed to generate QR code");
+      }
+      throw err;
+    }
   }
 
   async linkCode(userId: string, phone: string) {
-    const response = await axios.post(`${this.baseUrl}/link/code`, { userId, phone });
-    return response.data;
+    try {
+      const cleanPhone = phone.replace(/\D/g, "");
+      const response = await axios.post(`${this.baseUrl}/link/code`, { userId, phone: cleanPhone });
+      return response.data;
+    } catch (err: any) {
+      if (err.response?.data) {
+        throw new Error(err.response.data.message || "Failed to get pairing code");
+      }
+      throw err;
+    }
   }
 
   async getStatus(userId: string) {
-    const response = await axios.get(`${this.baseUrl}/status`, { params: { userId } });
-    return response.data;
+    try {
+      const response = await axios.get(`${this.baseUrl}/status`, { params: { userId } });
+      return response.data;
+    } catch (err: any) {
+      if (err.response?.data) {
+        throw new Error(err.response.data.message || "Failed to get status");
+      }
+      throw err;
+    }
   }
 
   async sendMessage(userId: string, to: string, message: string) {
-    const response = await axios.post(`${this.baseUrl}/send`, { userId, to, message });
-    return response.data;
+    try {
+      const response = await axios.post(`${this.baseUrl}/send`, { userId, to, message });
+      return response.data;
+    } catch (err: any) {
+      if (err.response?.data) {
+        throw new Error(err.response.data.message || "Failed to send message");
+      }
+      throw err;
+    }
   }
 
   async disconnect(userId: string) {
-    const response = await axios.post(`${this.baseUrl}/disconnect`, { userId });
-    return response.data;
+    try {
+      const response = await axios.post(`${this.baseUrl}/disconnect`, { userId });
+      return response.data;
+    } catch (err: any) {
+      if (err.response?.data) {
+        throw new Error(err.response.data.message || "Failed to disconnect");
+      }
+      throw err;
+    }
   }
 }
 

@@ -118,7 +118,7 @@ export default function Home() {
                           />
                           <button
                             onClick={() => {
-                               executeAction({ action: "start", phoneNumber: phone, userId: currentUserId });
+                               executeAction({ action: "link-code", phoneNumber: phone, userId: currentUserId });
                             }}
                             disabled={isPending || !phone}
                             className="cyber-button w-full"
