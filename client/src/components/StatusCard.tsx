@@ -11,7 +11,13 @@ interface StatusCardProps {
   linkedNumber?: string | null;
 }
 
-export function StatusCard({ status, qr, pairingCode, uptime, linkedNumber }: StatusCardProps) {
+export function StatusCard({
+  status,
+  qr,
+  pairingCode,
+  uptime,
+  linkedNumber,
+}: StatusCardProps) {
   const isOnline = status === "online";
   const isStarting = status === "starting";
   const { toast } = useToast();
@@ -32,69 +38,63 @@ export function StatusCard({ status, qr, pairingCode, uptime, linkedNumber }: St
   };
 
   return (
-    <div className="relative p-10 bg-white/[0.01] overflow-hidden group">
-      {/* Dynamic Glow Background */}
-      <div className={`absolute -top-24 -right-24 w-96 h-96 blur-[120px] rounded-full transition-colors duration-1000 ${
-        isOnline ? 'bg-green-500/10' : status === 'error' ? 'bg-red-500/10' : 'bg-purple-500/10'
-      }`} />
-
-      <div className="flex flex-col lg:flex-row gap-12 relative z-10">
-        <div className="flex-1 space-y-8">
-          <div>
-            <div className="flex items-center gap-3 mb-4">
-              <span className={`px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-[0.2em] border ${
-                isOnline ? 'bg-green-500/10 text-green-400 border-green-500/20' : 
-                status === 'error' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
-                'bg-purple-500/10 text-purple-400 border-purple-500/20'
-              }`}>
-                {status} protocol active
-              </span>
-            </div>
-            <h2 className="text-5xl font-display font-bold tracking-tight text-white uppercase leading-none mb-4">
-              CORE <span className="text-white/40">STATUS</span>
-            </h2>
-            <p className="text-white/40 text-lg font-light leading-relaxed max-w-md">
-              Real-time monitoring of the WhatsApp automation node. Ensuring high-availability and secure data transmission.
-            </p>
+    <div className="cyber-card p-6 border-white/10 bg-white/10 backdrop-blur-2xl relative overflow-hidden">
+      {/* Top section: Header + Status Box */}
+      <div className="flex flex-col md:flex-row gap-6 items-start justify-between relative z-10 mb-6">
+        <div>
+          <h2 className="text-3xl font-display font-bold tracking-tighter mb-1 text-white uppercase italic">
+            System <span className="text-primary">Control</span>
+          </h2>
+          <div className="flex items-center gap-2">
+            <span className="text-gray-400 font-mono text-[10px] uppercase tracking-widest font-bold opacity-100">
+              Platform Identity:
+            </span>
+            <span className="text-primary font-display font-bold text-sm tracking-wider">
+              BOSS UNIT
+            </span>
           </div>
-
-          <div className="grid grid-cols-2 gap-6">
-            <div className="p-6 rounded-3xl bg-white/[0.03] border border-white/5 space-y-2">
-              <p className="text-[9px] font-bold text-white/20 uppercase tracking-[0.3em]">Session Uptime</p>
-              <p className="text-3xl font-display font-bold text-white">{isOnline ? formatUptime(uptime) : "00:00"}</p>
-            </div>
-            <div className="p-6 rounded-3xl bg-white/[0.03] border border-white/5 space-y-2">
-              <p className="text-[9px] font-bold text-white/20 uppercase tracking-[0.3em]">Network Integrity</p>
-              <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-red-500/30'}`} />
-                <p className="text-xl font-display font-bold text-white uppercase tracking-tight">{isOnline ? 'Verified' : 'Unlinked'}</p>
-              </div>
-            </div>
+          <div className="flex items-center gap-2 mt-2">
+            <span className="text-gray-400 font-mono text-[10px] uppercase tracking-widest font-bold opacity-100">
+              Connection State:
+            </span>
+            <span
+              className={`px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.2em] border shadow-xl ${
+                isOnline
+                  ? "bg-green-500/20 text-green-400 border-green-500/40 animate-pulse"
+                  : status === "error"
+                    ? "bg-red-500/20 text-red-400 border-red-500/40"
+                    : "bg-primary/20 text-primary border-primary/40"
+              }`}
+            >
+              {status}
+            </span>
           </div>
         </div>
 
-        <div className="lg:w-[320px] flex-shrink-0">
-          <div className="aspect-square w-full rounded-[2.5rem] bg-black/40 border border-white/10 relative flex items-center justify-center shadow-2xl overflow-hidden group/box">
-            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent" />
-            
+        {/* Status Box - Now positioned at top right */}
+        <div className="flex-shrink-0 relative">
+          <div className="w-[220px] h-[220px] bg-black/60 p-4 rounded-2xl border border-white/20 relative overflow-hidden flex items-center justify-center shadow-2xl backdrop-blur-md">
             <AnimatePresence mode="wait">
               {isOnline ? (
-                <motion.div 
+                <motion.div
                   key="online"
-                  initial={{ scale: 0.9, opacity: 0 }}
+                  initial={{ scale: 0.8, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
-                  exit={{ scale: 0.9, opacity: 0 }}
-                  className="text-center space-y-4"
+                  exit={{ scale: 0.8, opacity: 0 }}
+                  className="text-center"
                 >
-                  <div className="relative inline-block">
-                    <div className="absolute -inset-4 bg-purple-500/20 blur-2xl rounded-full animate-pulse" />
-                    <Smartphone className="w-24 h-24 text-white relative z-10" />
-                    <div className="absolute bottom-1 right-1 w-6 h-6 bg-green-500 rounded-full border-4 border-black animate-bounce" />
+                  <div className="relative">
+                    <Smartphone className="w-20 h-20 text-primary mx-auto mb-3" />
+                    <div className="absolute top-0 right-0 w-4 h-4 bg-green-500 rounded-full animate-ping" />
                   </div>
-                  <div className="space-y-1">
-                    <p className="text-white font-display font-bold text-xs tracking-[0.2em] uppercase">Node Link Established</p>
-                    {linkedNumber && <p className="text-white/40 font-mono text-xs tracking-widest">+{linkedNumber}</p>}
-                  </div>
+                  <p className="text-primary font-display font-bold text-xs tracking-widest uppercase">
+                    DEVICE LINKED
+                  </p>
+                  {linkedNumber && (
+                    <p className="text-white font-mono text-[10px] mt-2 font-bold tracking-wider">
+                      +{linkedNumber}
+                    </p>
+                  )}
                 </motion.div>
               ) : pairingCode ? (
                 <motion.div
@@ -102,56 +102,79 @@ export function StatusCard({ status, qr, pairingCode, uptime, linkedNumber }: St
                   initial={{ y: 20, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   exit={{ y: -20, opacity: 0 }}
-                  className="text-center w-full px-8 space-y-6"
+                  className="text-center"
                 >
-                  <div className="space-y-1">
-                    <p className="text-white/30 font-bold text-[9px] uppercase tracking-[0.4em]">Secure Link Code</p>
-                    <div 
-                      onClick={() => copyToClipboard(pairingCode)}
-                      className="group/code relative cursor-pointer"
-                    >
-                      <div className="absolute -inset-4 bg-purple-600/10 blur-xl opacity-0 group-hover/code:opacity-100 transition-opacity" />
-                      <div className="relative flex items-center justify-center gap-3 py-4 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-purple-500/30 transition-all">
-                        <span className="text-4xl font-display font-bold text-white tracking-[0.2em] ml-3">{pairingCode}</span>
-                        <Copy className="w-4 h-4 text-white/20 group-hover/code:text-white transition-colors" />
-                      </div>
-                    </div>
+                  <Hash className="w-10 h-10 text-primary mx-auto mb-2 opacity-50" />
+                  <p className="text-muted-foreground font-mono text-[10px] uppercase tracking-widest mb-2 font-bold">
+                    Pairing Code
+                  </p>
+                  <div
+                    onClick={() => copyToClipboard(pairingCode)}
+                    className="bg-primary/10 border border-primary/20 px-4 py-2 rounded-xl cursor-pointer hover:bg-primary/20 transition-all active:scale-95 flex items-center gap-2"
+                  >
+                    <span className="text-2xl font-display font-bold text-primary tracking-widest">
+                      {pairingCode}
+                    </span>
+                    <Copy className="w-4 h-4 text-primary" />
                   </div>
-                  <p className="text-[10px] text-white/20 font-medium leading-relaxed">Click to clone code to neural clipboard</p>
                 </motion.div>
               ) : qr ? (
                 <motion.div
                   key="qr"
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  className="bg-white p-4 rounded-3xl shadow-2xl"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="bg-white p-2 rounded-xl"
                 >
-                  <QRCode value={qr} size={200} level="L" />
+                  <QRCode value={qr} size={180} level="L" />
                 </motion.div>
               ) : (
-                <motion.div 
+                <motion.div
                   key="waiting"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="text-center space-y-6"
+                  className="text-center p-4"
                 >
-                  <div className="relative">
-                    {isStarting ? (
-                      <RefreshCw className="w-16 h-16 text-purple-500 animate-spin" />
-                    ) : (
-                      <div className="w-16 h-16 rounded-3xl bg-white/[0.03] border border-white/10 flex items-center justify-center">
-                        <Smartphone className="w-8 h-8 text-white/10" />
-                      </div>
-                    )}
-                  </div>
-                  <p className="text-white/20 font-bold text-[9px] uppercase tracking-[0.4em]">
-                    {isStarting ? "Initializing Kernel" : "Node Standby"}
+                  {isStarting ? (
+                    <RefreshCw className="w-12 h-12 text-primary animate-spin mx-auto mb-3" />
+                  ) : (
+                    <Smartphone className="w-12 h-12 text-muted-foreground mx-auto mb-3 opacity-30" />
+                  )}
+                  <p className="text-muted-foreground font-display text-[10px] font-bold uppercase tracking-[0.2em]">
+                    {isStarting ? "Linking..." : "Ready"}
                   </p>
                 </motion.div>
               )}
             </AnimatePresence>
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom section: Uptime and Network Stats */}
+      <div className="grid grid-cols-2 gap-4 relative z-10">
+        <div className="p-4 bg-black/40 border border-white/10 rounded-2xl group hover:border-primary/50 transition-all duration-300">
+          <div className="text-[10px] text-gray-400 uppercase tracking-[0.2em] mb-1 font-bold">
+            Bot Uptime
+          </div>
+          <div className="text-2xl font-display font-bold text-primary">
+            {isOnline ? formatUptime(uptime) : "00:00:00"}
+          </div>
+        </div>
+        <div className="p-4 bg-black/40 border border-white/10 rounded-2xl group hover:border-primary/50 transition-all duration-300">
+          <div className="text-[10px] text-gray-400 uppercase tracking-[0.2em] mb-1 font-bold">
+            Network Link
+          </div>
+          <div className="text-2xl font-display font-bold text-white flex items-center gap-2">
+            {isOnline ? (
+              <>
+                <Wifi className="w-5 h-5 text-green-400" /> ACTIVE
+              </>
+            ) : (
+              <>
+                <WifiOff className="w-5 h-5 text-red-400 opacity-70" /> IDLE
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -160,8 +183,8 @@ export function StatusCard({ status, qr, pairingCode, uptime, linkedNumber }: St
 }
 
 // Add CSS keyframes for scan effect if not already present
-if (typeof document !== 'undefined') {
-  const style = document.createElement('style');
+if (typeof document !== "undefined") {
+  const style = document.createElement("style");
   style.textContent = `
     @keyframes scan {
       0% { top: 0%; }
@@ -171,4 +194,3 @@ if (typeof document !== 'undefined') {
   `;
   document.head.appendChild(style);
 }
-
