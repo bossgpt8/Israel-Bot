@@ -1,4 +1,5 @@
 import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
 import { 
   getAuth, 
   GoogleAuthProvider, 
@@ -13,22 +14,20 @@ import {
 import { getFirestore, doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyBgPu2vu1QeH76l7CLuJXQxzpsmuOfGjpM",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "boss-bot-b3858.firebaseapp.com",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "boss-bot-b3858",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "boss-bot-b3858.firebasestorage.app",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "626207302410",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:626207302410:web:9599d4fafe9937d0e990f3",
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "G-64QBPYVFVL"
+  apiKey: "AIzaSyD-Y-1-WxtrAxDonf6H7OXzezakyaxPL8I",
+  authDomain: "boss-bot-md.firebaseapp.com",
+  projectId: "boss-bot-md",
+  storageBucket: "boss-bot-md.firebasestorage.app",
+  messagingSenderId: "382812382967",
+  appId: "1:382812382967:web:884faea91e645af14455f2",
+  measurementId: "G-J19CBQ8BPJ"
 };
 
 const app = initializeApp(firebaseConfig);
+export const analytics = typeof window !== "undefined" ? getAnalytics(app) : null;
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 
-// Attempt to enable long-lived tab sync if possible, but Firestore error usually means 
-// the database hasn't been created in the Firebase Console.
-// We'll add a helper to check if Firestore is actually initialized.
 async function checkFirestore() {
   try {
     if (typeof window !== "undefined") {
@@ -40,7 +39,7 @@ async function checkFirestore() {
     }
   } catch (e: any) {
     if (e.message?.includes("Database '(default)' not found") || e.code === 'not-found') {
-      console.error("FIREBASE ERROR: Database '(default)' not found. ACTION REQUIRED: 1. Go to https://console.firebase.google.com/ 2. Select your project 'boss-bot-b3858' 3. Click 'Firestore Database' in the sidebar 4. Click 'Create database' 5. Select 'Native mode' and a location.");
+      console.error("FIREBASE ERROR: Database '(default)' not found. ACTION REQUIRED: 1. Go to https://console.firebase.google.com/ 2. Select your project 'boss-bot-md' 3. Click 'Firestore Database' in the sidebar 4. Click 'Create database' 5. Select 'Native mode' and a location.");
     }
   }
 }
