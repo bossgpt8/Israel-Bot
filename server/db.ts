@@ -9,5 +9,9 @@ if (!process.env.DATABASE_URL) {
 }
 
 // For Vercel/Serverless: Use a single connection or adjust pooling
-const client = postgres(process.env.DATABASE_URL, { max: 1 });
+const client = postgres(process.env.DATABASE_URL, { 
+  max: 1,
+  idle_timeout: 20,
+  connect_timeout: 10,
+});
 export const db = drizzle(client, { schema });

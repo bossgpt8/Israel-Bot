@@ -14,14 +14,15 @@ export function useBotStatus() {
       try {
         const res = await fetch(api.bot.status.path);
         if (!res.ok) {
-          const text = await res.text();
-          throw new Error(text || "Failed to fetch status");
+          // If status fails, return a disconnected state instead of throwing
+          // to keep the UI from crashing/showing a hard error
+          return { connected: false, status: "disconnected" };
         }
         const data = await res.json();
         return api.bot.status.responses[200].parse(data);
       } catch (err: any) {
-        console.error("Status fetch error:", err);
-        throw err;
+        console.warn("Status fetch warning:", err);
+        return { connected: false, status: "disconnected" };
       }
     },
     refetchInterval: 5000, 

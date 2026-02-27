@@ -13,18 +13,39 @@ import {
 import { getFirestore, doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBgPu2vu1QeH76l7CLuJXQxzpsmuOfGjpM",
-  authDomain: "boss-bot-b3858.firebaseapp.com",
-  projectId: "boss-bot-b3858",
-  storageBucket: "boss-bot-b3858.firebasestorage.app",
-  messagingSenderId: "626207302410",
-  appId: "1:626207302410:web:9599d4fafe9937d0e990f3",
-  measurementId: "G-64QBPYVFVL"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyBgPu2vu1QeH76l7CLuJXQxzpsmuOfGjpM",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "boss-bot-b3858.firebaseapp.com",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "boss-bot-b3858",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "boss-bot-b3858.firebasestorage.app",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "626207302410",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:626207302410:web:9599d4fafe9937d0e990f3",
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "G-64QBPYVFVL"
 };
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+
+// Attempt to enable long-lived tab sync if possible, but Firestore error usually means 
+// the database hasn't been created in the Firebase Console.
+// We'll add a helper to check if Firestore is actually initialized.
+async function checkFirestore() {
+  try {
+    if (typeof window !== "undefined") {
+      const docRef = doc(db, "users", "test");
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("Firestore check timed out")), 3000)
+      );
+      await Promise.race([getDoc(docRef), timeoutPromise]);
+    }
+  } catch (e: any) {
+    if (e.message?.includes("Database '(default)' not found") || e.code === 'not-found') {
+      console.error("FIREBASE ERROR: Database '(default)' not found. ACTION REQUIRED: 1. Go to https://console.firebase.google.com/ 2. Select your project 'boss-bot-b3858' 3. Click 'Firestore Database' in the sidebar 4. Click 'Create database' 5. Select 'Native mode' and a location.");
+    }
+  }
+}
+checkFirestore();
+
 const googleProvider = new GoogleAuthProvider();
 
 export async function loginWithGoogle() {

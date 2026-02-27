@@ -16,10 +16,21 @@ export async function registerRoutes(
   app.get(api.bot.status.path, async (req, res) => {
     const userId = (req.query.userId as string) || "default";
     try {
-      const status = await bossBotClient.getStatus(userId);
+      // Use a shorter timeout and better error handling for Vercel
+      const statusPromise = bossBotClient.getStatus(userId);
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("Timeout")), 5000)
+      );
+      
+      const status = await Promise.race([statusPromise, timeoutPromise]);
       res.json(status);
     } catch (err: any) {
-      res.json({ connected: false, status: "disconnected", error: err.message });
+      // Always return a valid JSON object with 200 to avoid Vercel Function Crashes
+      res.status(200).json({ 
+        connected: false, 
+        status: "disconnected", 
+        error: "Service temporarily unavailable" 
+      });
     }
   });
 

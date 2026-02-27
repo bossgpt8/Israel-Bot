@@ -36,13 +36,15 @@ export class BossBotClient {
 
   async getStatus(userId: string) {
     try {
-      const response = await axios.get(`${this.baseUrl}/status`, { params: { userId } });
+      log(`Calling external status for ${userId} at ${this.baseUrl}/status`);
+      const response = await axios.get(`${this.baseUrl}/status`, { 
+        params: { userId },
+        timeout: 10000 // 10 second timeout
+      });
       return response.data;
     } catch (err: any) {
-      if (err.response?.data) {
-        throw new Error(err.response.data.message || "Failed to get status");
-      }
-      throw err;
+      log(`Bot client status error: ${err.message}`, "error");
+      return { connected: false, status: "disconnected", error: "Bot backend unreachable" };
     }
   }
 
