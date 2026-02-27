@@ -1,4 +1,5 @@
 import axios from "axios";
+import { log } from "./vite";
 
 const BOSS_BOT_API_URL = process.env.BOSS_BOT_BACKEND_URL || "https://your-boss-bot-backend.com";
 

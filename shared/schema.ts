@@ -9,6 +9,9 @@ export const botSettings = pgTable("bot_settings", {
   autoRead: boolean("auto_read").default(false),
   autoStatusRead: boolean("auto_status_read").default(false),
   publicMode: text("public_mode").default("public"), // public, private, inbox
+  welcomeEnabled: boolean("welcome_enabled").default(false),
+  goodbyeEnabled: boolean("goodbye_enabled").default(false),
+  autoTyping: boolean("auto_typing").default(false),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
