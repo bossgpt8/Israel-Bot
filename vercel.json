@@ -2,10 +2,6 @@
   "version": 2,
   "builds": [
     {
-      "src": "server/index.ts",
-      "use": "@vercel/node"
-    },
-    {
       "src": "package.json",
       "use": "@vercel/static-build",
       "config": {
@@ -15,8 +11,20 @@
   ],
   "routes": [
     {
-      "src": "/api/(.*)",
-      "dest": "/server/index.ts"
+      "src": "/api/bot/status",
+      "dest": "/api/bot/status.js"
+    },
+    {
+      "src": "/api/bot/action",
+      "dest": "/api/bot/action.js"
+    },
+    {
+      "src": "/api/bot/logs",
+      "dest": "/api/bot/logs/index.js"
+    },
+    {
+      "src": "/api/settings",
+      "dest": "/api/settings/index.js"
     },
     {
       "src": "/assets/(.*)",
@@ -27,8 +35,5 @@
       "dest": "/index.html",
       "check": true
     }
-  ],
-  "env": {
-    "NODE_OPTIONS": "--import tsx"
-  }
+  ]
 }
