@@ -1,4 +1,4 @@
-import { storage } from "../storage.js";
+import { storage } from "./storage.js";
 
 export default async function handler(req, res) {
   const userId = req.query.userId || "default";
@@ -13,5 +13,5 @@ export default async function handler(req, res) {
     }
     return res.status(200).json({ success: true });
   }
-  res.status(405).end();
+  res.status(405).json({ message: "Method not allowed" });
 }

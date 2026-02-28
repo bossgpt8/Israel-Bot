@@ -11,20 +11,20 @@
   ],
   "routes": [
     {
-      "src": "/api/bot/status",
-      "dest": "/api/bot/status.js"
+      "src": "/api/bot/action",
+      "dest": "/api/action.js"
     },
     {
-      "src": "/api/bot/action",
-      "dest": "/api/bot/action.js"
+      "src": "/api/bot/status",
+      "dest": "/api/status.js"
     },
     {
       "src": "/api/bot/logs",
-      "dest": "/api/bot/logs/index.js"
+      "dest": "/api/logs.js"
     },
     {
       "src": "/api/settings",
-      "dest": "/api/settings/index.js"
+      "dest": "/api/settings.js"
     },
     {
       "src": "/assets/(.*)",
@@ -32,8 +32,7 @@
     },
     {
       "src": "/(.*)",
-      "dest": "/index.html",
-      "check": true
+      "dest": "/index.html"
     }
   ]
 }

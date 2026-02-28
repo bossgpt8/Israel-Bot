@@ -8,14 +8,22 @@ export class BossBotClient {
   }
 
   async linkQR(userId) {
-    const response = await axios.post(`${this.baseUrl}/link/qr`, { userId });
-    return response.data;
+    try {
+      const response = await axios.post(`${this.baseUrl}/link/qr`, { userId });
+      return response.data;
+    } catch (err) {
+      throw new Error(err.response?.data?.message || "Failed to generate QR code");
+    }
   }
 
   async linkCode(userId, phone) {
-    const cleanPhone = phone.replace(/\D/g, "");
-    const response = await axios.post(`${this.baseUrl}/link/code`, { userId, phone: cleanPhone });
-    return response.data;
+    try {
+      const cleanPhone = phone.replace(/\D/g, "");
+      const response = await axios.post(`${this.baseUrl}/link/code`, { userId, phone: cleanPhone });
+      return response.data;
+    } catch (err) {
+      throw new Error(err.response?.data?.message || "Failed to get pairing code");
+    }
   }
 
   async getStatus(userId) {
@@ -28,13 +36,21 @@ export class BossBotClient {
   }
 
   async sendMessage(userId, to, message) {
-    const response = await axios.post(`${this.baseUrl}/send`, { userId, to, message });
-    return response.data;
+    try {
+      const response = await axios.post(`${this.baseUrl}/send`, { userId, to, message });
+      return response.data;
+    } catch (err) {
+      throw new Error(err.response?.data?.message || "Failed to send message");
+    }
   }
 
   async disconnect(userId) {
-    const response = await axios.post(`${this.baseUrl}/disconnect`, { userId });
-    return response.data;
+    try {
+      const response = await axios.post(`${this.baseUrl}/disconnect`, { userId });
+      return response.data;
+    } catch (err) {
+      throw new Error(err.response?.data?.message || "Failed to disconnect");
+    }
   }
 }
 

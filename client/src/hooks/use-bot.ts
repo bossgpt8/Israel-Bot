@@ -38,7 +38,7 @@ export function useBotAction() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ action, phoneNumber, userId }: { action: "start" | "stop" | "restart" | "logout", phoneNumber?: string, userId?: string }) => {
+    mutationFn: async ({ action, phoneNumber, userId }: { action: "start" | "stop" | "restart" | "logout" | "link-code", phoneNumber?: string, userId?: string }) => {
       const res = await fetch(api.bot.action.path, {
         method: api.bot.action.method,
         headers: { "Content-Type": "application/json" },
