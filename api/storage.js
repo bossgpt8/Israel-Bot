@@ -5,7 +5,7 @@ import {
   userSettings,
   userSessions,
   userLogs,
-} from "../shared/schema.js";
+} from "./schema.js";
 
 export const storage = {
   async getSettings() {

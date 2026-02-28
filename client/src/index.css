@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 :root {
   --background: 240 10% 4%;
   --foreground: 210 40% 98%;
@@ -20,24 +24,7 @@
   --font-mono: 'JetBrains Mono', monospace;
 }
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
 @layer base {
-  @font-face {
-    font-family: 'Orbitron';
-    src: url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&display=swap');
-  }
-  @font-face {
-    font-family: 'Rajdhani';
-    src: url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&display=swap');
-  }
-  @font-face {
-    font-family: 'JetBrains Mono';
-    src: url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
-  }
-
   *, ::before, ::after {
     border-color: hsl(var(--border));
   }

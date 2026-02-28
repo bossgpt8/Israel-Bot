@@ -7,23 +7,31 @@
       "config": {
         "distDir": "dist"
       }
+    },
+    {
+      "src": "api/*.js",
+      "use": "@vercel/node"
     }
   ],
   "routes": [
     {
-      "src": "/api/bot/action",
+      "src": "/api/bot/action(.*)",
       "dest": "/api/action.js"
     },
     {
-      "src": "/api/bot/status",
+      "src": "/api/bot/status(.*)",
       "dest": "/api/status.js"
     },
     {
-      "src": "/api/bot/logs",
+      "src": "/api/bot/logs/stream(.*)",
       "dest": "/api/logs.js"
     },
     {
-      "src": "/api/settings",
+      "src": "/api/bot/logs(.*)",
+      "dest": "/api/logs.js"
+    },
+    {
+      "src": "/api/settings(.*)",
       "dest": "/api/settings.js"
     },
     {
