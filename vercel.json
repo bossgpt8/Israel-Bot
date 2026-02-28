@@ -9,38 +9,38 @@
       }
     },
     {
-      "src": "api/*.js",
+      "src": "api/**/*.js",
       "use": "@vercel/node"
     }
   ],
-  "routes": [
+  "rewrites": [
     {
-      "src": "/api/bot/action(.*)",
-      "dest": "/api/action.js"
+      "source": "/api/bot/action(.*)",
+      "destination": "/api/bot/action.js"
     },
     {
-      "src": "/api/bot/status(.*)",
-      "dest": "/api/status.js"
+      "source": "/api/bot/status(.*)",
+      "destination": "/api/bot/status.js"
     },
     {
-      "src": "/api/bot/logs/stream(.*)",
-      "dest": "/api/logs.js"
+      "source": "/api/bot/logs/stream(.*)",
+      "destination": "/api/bot/logs.js"
     },
     {
-      "src": "/api/bot/logs(.*)",
-      "dest": "/api/logs.js"
+      "source": "/api/bot/logs(.*)",
+      "destination": "/api/bot/logs.js"
     },
     {
-      "src": "/api/settings(.*)",
-      "dest": "/api/settings.js"
+      "source": "/api/settings(.*)",
+      "destination": "/api/bot/settings.js"
     },
     {
-      "src": "/assets/(.*)",
-      "dest": "/assets/$1"
+      "source": "/assets/(.*)",
+      "destination": "/assets/$1"
     },
     {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
